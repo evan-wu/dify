@@ -100,7 +100,7 @@ class AdvancedChatAppRunner(AppRunner):
             history_messages = db_query.all()
             for db_message in history_messages:
                 message_history.append({'role': 'user', 'content': db_message.query})
-                message_history.append({'role': 'user', 'content': db_message.answer})
+                message_history.append({'role': 'assistant', 'content': db_message.answer})
 
         db.session.close()
 
