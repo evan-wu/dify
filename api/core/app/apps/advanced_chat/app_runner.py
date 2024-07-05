@@ -85,6 +85,23 @@ class AdvancedChatAppRunner(AppRunner):
         ):
             return
 
+        # get conversation history
+        message_history = []
+        db_conv = db.session.query(Conversation).filter(
+            Conversation.app_id == app_config.app_id,
+            Conversation.id == conversation.id
+        ).first()
+
+        if db_conv:
+            db_query = db.session.query(Message).filter(
+                Message.conversation_id == conversation.id,
+                Message.answer != ''
+            ).order_by(Message.created_at.asc())
+            history_messages = db_query.all()
+            for db_message in history_messages:
+                message_history.append({'role': 'user', 'content': db_message.query})
+                message_history.append({'role': 'user', 'content': db_message.answer})
+
         db.session.close()
 
         workflow_callbacks = [WorkflowEventTriggerCallback(
@@ -109,7 +126,8 @@ class AdvancedChatAppRunner(AppRunner):
                 SystemVariable.QUERY: query,
                 SystemVariable.FILES: files,
                 SystemVariable.CONVERSATION_ID: conversation.id,
-                SystemVariable.USER_ID: user_id
+                SystemVariable.USER_ID: user_id,
+                SystemVariable.MESSAGE_HISTORY: message_history
             },
             callbacks=workflow_callbacks,
             call_depth=application_generate_entity.call_depth

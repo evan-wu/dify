@@ -88,6 +88,10 @@ const formatItem = (item: any, isChatMode: boolean, filterVar: (payload: Var, se
           type: VarType.string,
         })
         res.vars.push({
+          variable: 'sys.message_history',
+          type: VarType.arrayObject,
+        })
+        res.vars.push({
           variable: 'sys.conversation_id',
           type: VarType.string,
         })

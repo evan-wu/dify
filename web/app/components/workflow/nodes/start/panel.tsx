@@ -71,6 +71,21 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                   />)
               }
 
+              {
+                isChatMode && (
+                  <VarItem
+                    readonly
+                    payload={{
+                      variable: 'sys.message_history',
+                    } as any}
+                    rightContent={
+                      <div className='text-xs font-normal text-gray-500'>
+                        Array[Object]
+                      </div>
+                    }
+                  />)
+              }
+
               <VarItem
                 readonly
                 payload={{

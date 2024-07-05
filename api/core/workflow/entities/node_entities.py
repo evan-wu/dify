@@ -49,6 +49,7 @@ class SystemVariable(Enum):
     FILES = 'files'
     CONVERSATION_ID = 'conversation_id'
     USER_ID = 'user_id'
+    MESSAGE_HISTORY = 'message_history'
 
     @classmethod
     def value_of(cls, value: str) -> 'SystemVariable':
