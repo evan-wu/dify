@@ -17,7 +17,7 @@ class CollectNodeData(BaseNodeData):
 
     output_selector: list[str]  # output selector
     output: Optional[Any] = None
-    OUTPUT_NAME = 'output'
+    OUTPUT_NAME: str = 'output'
 
 
 class CollectState(BaseModel):
