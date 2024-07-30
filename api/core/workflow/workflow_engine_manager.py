@@ -1274,9 +1274,11 @@ class WorkflowEngineManager:
                     if node not in current_var_dict:
                         current_var_dict[node] = dict()
                     value_type = var['value_type']
-                    if value_type == 'array':
-                        current_var_dict[node][var_hash] = factory.build_anonymous_variable(var['value'])
+                    if 'array' in value_type:
+                        current_var_dict[node][var_hash] = factory.build_segment(var['value'])
                     else:
+                        if 'name' not in var:
+                            var['name'] = 'anonymous'
                         current_var_dict[node][var_hash] = factory.build_variable_from_mapping(var)
 
         return collect_node_id
