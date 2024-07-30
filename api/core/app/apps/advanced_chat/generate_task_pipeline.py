@@ -50,6 +50,7 @@ from core.ops.ops_trace_manager import TraceQueueManager
 from core.workflow.entities.node_entities import NodeType, SystemVariable
 from core.workflow.nodes.answer.answer_node import AnswerNode
 from core.workflow.nodes.answer.entities import TextGenerateRouteChunk, VarGenerateRouteChunk
+from core.workflow.nodes.collect.entities import CollectNodeData
 from events.message_event import message_was_created
 from extensions.ext_database import db
 from models.account import Account
@@ -73,6 +74,7 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
     _user: Union[Account, EndUser]
     _workflow_system_variables: dict[SystemVariable, Any]
     _iteration_nested_relations: dict[str, list[str]]
+    _collect_nested_relations: dict[str, list[str]]
 
     def __init__(
             self, application_generate_entity: AdvancedChatAppGenerateEntity,
@@ -115,6 +117,7 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
         )
 
         self._iteration_nested_relations = self._get_iteration_nested_relations(self._workflow.graph_dict)
+        self._collect_nested_relations = self._get_collect_nested_relations(self._workflow.graph_dict)
         self._stream_generate_routes = self._get_stream_generate_routes()
         self._conversation_name_generate_thread = None
 
@@ -303,10 +306,15 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
                     )
             elif isinstance(event, QueueIterationStartEvent | QueueIterationNextEvent | QueueIterationCompletedEvent):
                 if isinstance(event, QueueIterationNextEvent):
-                    # clear ran node execution infos of current iteration
+                    # clear ran node execution infos of current iteration/collect
                     iteration_relations = self._iteration_nested_relations.get(event.node_id)
                     if iteration_relations:
                         for node_id in iteration_relations:
+                            self._task_state.ran_node_execution_infos.pop(node_id, None)
+
+                    collect_relations = self._collect_nested_relations.get(event.node_id)
+                    if collect_relations:
+                        for node_id in collect_relations:
                             self._task_state.ran_node_execution_infos.pop(node_id, None)
 
                 yield self._handle_iteration_to_stream_response(self._application_generate_entity.task_id, event)
@@ -482,9 +490,10 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
                 return []
 
             node_iteration_id = target_node.get('data', {}).get('iteration_id')
-            # get iteration start node id
+            node_collect_id = target_node.get('data', {}).get('collect_id')
+            # get iteration/collect start node id
             for node in nodes:
-                if node.get('id') == node_iteration_id:
+                if node.get('id') == node_iteration_id or node.get('id') == node_collect_id:
                     if node.get('data', {}).get('start_node_id') == target_node_id:
                         return [target_node_id]
 
@@ -504,17 +513,26 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
                 iteration_node = next((node for node in nodes if node.get('id') == node_iteration_id), None)
                 iteration_start_node_id = iteration_node.get('data', {}).get('start_node_id')
 
+            node_collect_id = source_node.get('data', {}).get('collect_id')
+            collect_start_node_id = None
+            if node_collect_id:
+                collect_node = next((node for node in nodes if node.get('id') == node_collect_id), None)
+                collect_start_node_id = collect_node.get('data', {}).get('start_node_id')
+
             if node_type in [
                 NodeType.ANSWER.value,
                 NodeType.IF_ELSE.value,
                 NodeType.QUESTION_CLASSIFIER.value,
                 NodeType.ITERATION.value,
+                NodeType.COLLECT.value,  # output from collect node
                 NodeType.LOOP.value
             ]:
                 start_node_id = target_node_id
                 start_node_ids.append(start_node_id)
             elif node_type == NodeType.START.value or \
-                    node_iteration_id is not None and iteration_start_node_id == source_node.get('id'):
+                    (node_iteration_id is not None and iteration_start_node_id == source_node.get('id')) or \
+                    (node_collect_id is not None and collect_start_node_id == source_node.get('id')):
+                # output from iteration/collect inner node
                 start_node_id = source_node_id
                 start_node_ids.append(start_node_id)
             else:
@@ -620,6 +638,22 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
                         value = iterator_selector[iteration_state.current_index] if iteration_state.current_index < len(
                             iterator_selector
                         ) else None
+                elif route_chunk_node_id in self._collect_nested_relations:
+                    # it's a variable referencing Collect Node output, we remembered the output in
+                    # IterationCompletedEvent
+                    if not self._iteration_state or not self._iteration_state.current_iterations:
+                        continue
+
+                    collect_state = self._iteration_state.current_iterations.get(route_chunk_node_id)
+                    if not collect_state:
+                        continue
+
+                    node_data = cast(CollectNodeData, collect_state.node_data)
+                    # only 'output' variable can be referred from Answer
+                    output = node_data.output.get('output') if node_data.output else None
+                    if not output:
+                        continue
+                    value = output
                 else:
                     # check chunk node id is before current node id or equal to current node id
                     if route_chunk_node_id not in self._task_state.ran_node_execution_infos:
@@ -768,3 +802,22 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
                 self._output_moderation_handler.append_new_token(text)
 
         return False
+
+    def _get_collect_nested_relations(self, graph: dict) -> dict[str, list[str]]:
+        """
+        Get collect nested relations.
+        :param graph: graph
+        :return:
+        """
+        nodes = graph.get('nodes')
+
+        collect_ids = [node.get('id') for node in nodes
+                       if node.get('data', {}).get('type') in [
+                           NodeType.COLLECT.value,
+                       ]]
+
+        return {
+            collect_id: [
+                node.get('id') for node in nodes if node.get('data', {}).get('collect_id') == collect_id
+            ] for collect_id in collect_ids
+        }

@@ -1,13 +1,17 @@
+import json
 import logging
 import time
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from configs import dify_config
 from core.app.app_config.entities import FileExtraConfig
 from core.app.apps.base_app_queue_manager import GenerateTaskStoppedException
 from core.app.entities.app_invoke_entities import InvokeFrom
+from core.app.segments import factory
 from core.file.file_obj import FileTransferMethod, FileType, FileVar
+from core.model_runtime.utils.encoders import jsonable_encoder
 from core.workflow.callbacks.base_workflow_callback import WorkflowCallback
 from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult, NodeType, SystemVariable
 from core.workflow.entities.variable_pool import VariablePool, VariableValue
@@ -16,6 +20,8 @@ from core.workflow.errors import WorkflowNodeRunFailedError
 from core.workflow.nodes.answer.answer_node import AnswerNode
 from core.workflow.nodes.base_node import BaseIterationNode, BaseNode, UserFrom
 from core.workflow.nodes.code.code_node import CodeNode
+from core.workflow.nodes.collect.collect_node import CollectNode
+from core.workflow.nodes.collect.entities import CollectState
 from core.workflow.nodes.end.end_node import EndNode
 from core.workflow.nodes.http_request.http_request_node import HttpRequestNode
 from core.workflow.nodes.if_else.if_else_node import IfElseNode
@@ -34,6 +40,7 @@ from extensions.ext_database import db
 from models.workflow import (
     Workflow,
     WorkflowNodeExecutionStatus,
+    WorkflowRunningCollect,
 )
 
 node_classes: Mapping[NodeType, type[BaseNode]] = {
@@ -51,7 +58,8 @@ node_classes: Mapping[NodeType, type[BaseNode]] = {
     NodeType.VARIABLE_AGGREGATOR: VariableAggregatorNode,
     NodeType.VARIABLE_ASSIGNER: VariableAggregatorNode,
     NodeType.ITERATION: IterationNode,
-    NodeType.PARAMETER_EXTRACTOR: ParameterExtractorNode
+    NodeType.COLLECT: CollectNode,
+    NodeType.PARAMETER_EXTRACTOR: ParameterExtractorNode,
 }
 
 logger = logging.getLogger(__name__)
@@ -141,6 +149,8 @@ class WorkflowEngineManager:
             invoke_from=invoke_from,
             workflow_call_depth=call_depth
         )
+        # load pending collect, can skip if workflow has no Collect Node?
+        pending_collect_node_id = self._load_workflow_running_collect(workflow, workflow_run_state)
 
         # init workflow run
         if callbacks:
@@ -152,6 +162,7 @@ class WorkflowEngineManager:
             workflow=workflow,
             workflow_run_state=workflow_run_state,
             callbacks=callbacks,
+            start_at=pending_collect_node_id,
         )
 
     def _run_workflow(self, workflow: Workflow,
@@ -177,6 +188,8 @@ class WorkflowEngineManager:
         try:
             predecessor_node: BaseNode | None = None
             current_iteration_node: BaseIterationNode | None = None
+            current_collect_node: CollectNode | None = None
+            is_resumed_collect = False
             has_entry_node = False
             max_execution_steps = dify_config.WORKFLOW_MAX_EXECUTION_STEPS
             max_execution_time = dify_config.WORKFLOW_MAX_EXECUTION_TIME
@@ -190,6 +203,18 @@ class WorkflowEngineManager:
                     start_at=start_at,
                     end_at=end_at
                 )
+                # if the first node to run is Collect Node
+                if not has_entry_node and start_at is not None and isinstance(next_node, CollectNode):
+                    # assert _current_runs_ in variable_pool
+                    current_runs = workflow_run_state.variable_pool.get(
+                        (next_node.node_id, CollectNode.VAR_NAME_CURRENT_RUNS)
+                    )
+                    if current_runs is not None:
+                        is_resumed_collect = True
+                        workflow_run_state.variable_pool.add(
+                            (next_node.node_id, CollectNode.VAR_NAME_IS_RESUMED_COLLECT),
+                            is_resumed_collect
+                        )
 
                 if not next_node:
                     # reached loop/iteration end or overall end
@@ -239,6 +264,54 @@ class WorkflowEngineManager:
                             # get next id
                             next_node = self._get_node(workflow_run_state=workflow_run_state, graph=graph, node_id=next_node_id, callbacks=callbacks)
 
+                    # reached current collect end, should check if exit condition met, if so get next overall node
+                    # if not, save and exit the WHOLE workflow to wait for user input
+                    if current_collect_node and workflow_run_state.current_collect_state:
+                        # collect completed: success or max runs reached
+                        if current_collect_node.check_collect_completed(workflow_run_state.variable_pool,
+                                                                        workflow_run_state.current_collect_state):
+                            # set collect node level output
+                            collect_node_output = workflow_run_state.variable_pool.get_any(
+                                current_collect_node.node_data.output_selector
+                            )
+                            workflow_run_state.variable_pool.add(
+                                (current_collect_node.node_id, 'output'),
+                                collect_node_output
+                            )
+                            # NodeRunResult for event output
+                            current_collect_node.node_run_result = NodeRunResult(
+                                status=WorkflowNodeExecutionStatus.SUCCEEDED,
+                                outputs={
+                                    'output': jsonable_encoder(collect_node_output)
+                                }
+                            )
+                            self._workflow_collect_completed(
+                                current_collect_node=current_collect_node,
+                                workflow_run_state=workflow_run_state,
+                                callbacks=callbacks
+                            )
+
+                            # move on workflow next node
+                            next_node = self._get_next_overall_node(
+                                workflow_run_state=workflow_run_state,
+                                graph=graph,
+                                predecessor_node=current_collect_node,
+                                callbacks=callbacks,
+                                start_at=start_at,
+                                end_at=end_at
+                            )
+
+                            # delete the saved collect state
+                            if is_resumed_collect:
+                                self._delete_workflow_running_collect(workflow, workflow_run_state)
+
+                            current_collect_node = None
+                            workflow_run_state.current_collect_state = None
+                        else:
+                            self._save_workflow_running_collect(workflow, workflow_run_state)
+                            break
+                            # exit the WHOLE workflow
+
                 if not next_node:
                     break
 
@@ -256,6 +329,61 @@ class WorkflowEngineManager:
                 # or max execution time reached
                 if self._is_timed_out(start_at=workflow_run_state.start_at, max_execution_time=max_execution_time):
                     raise ValueError('Max execution time {}s reached.'.format(max_execution_time))
+
+                # handle collect nodes, the loaded 'start_at' node if not completed last time
+                if isinstance(next_node, CollectNode):
+                    current_collect_node = next_node
+
+                    workflow_run_state.current_collect_state = cast(
+                        CollectState,
+                        next_node.run(variable_pool=workflow_run_state.variable_pool)
+                    )
+                    self._workflow_collect_started(
+                        graph=graph,
+                        current_collect_node=current_collect_node,
+                        workflow_run_state=workflow_run_state,
+                        predecessor_node_id=predecessor_node.node_id if predecessor_node else None,
+                        callbacks=callbacks
+                    )
+
+                    predecessor_node = next_node
+                    # try another run of the collect, can be None = completed
+                    next_node_id = next_node.get_next_run(
+                        variable_pool=workflow_run_state.variable_pool,
+                        state=workflow_run_state.current_collect_state,
+                    )
+                    # prepare to run collect inner node
+                    self._workflow_collect_next(
+                        graph=graph,
+                        current_collect_node=current_collect_node,
+                        workflow_run_state=workflow_run_state,
+                        callbacks=callbacks
+                    )
+
+                    # if already completed, skip running the Collect Node
+                    if next_node_id is None:
+                        # NodeRunResult for event output, last output should be in variable_pool
+                        current_collect_node.node_run_result = NodeRunResult(
+                            status=WorkflowNodeExecutionStatus.SUCCEEDED,
+                            outputs={
+                                'output': jsonable_encoder(workflow_run_state.variable_pool.get_any(
+                                    (current_collect_node.node_id, 'output'))
+                                )
+                            }
+                        )
+                        self._workflow_collect_completed(
+                            current_collect_node=current_collect_node,
+                            workflow_run_state=workflow_run_state,
+                            callbacks=callbacks
+                        )
+
+                        current_collect_node = None
+                        workflow_run_state.current_collect_state = None
+                        # move on workflow, skip current node
+                        continue
+                    else:
+                        next_node = self._get_node(workflow_run_state=workflow_run_state, graph=graph,
+                                                   node_id=next_node_id, callbacks=callbacks)
 
                 # handle iteration nodes
                 if isinstance(next_node, BaseIterationNode):
@@ -820,6 +948,12 @@ class WorkflowEngineManager:
                 node_id=node.node_id,
                 iteration_node_id=workflow_run_state.current_iteration_state.iteration_node_id
             ))
+        if workflow_run_state.current_collect_state:
+            workflow_run_state.workflow_node_runs.append(WorkflowRunState.NodeRun(
+                node_id=node.node_id,
+                # reuse the iteration_node_id for now
+                iteration_node_id=workflow_run_state.current_collect_state.collect_node_id
+            ))
 
         try:
             # run node, result must have inputs, process_data, outputs, execution_metadata
@@ -984,3 +1118,177 @@ class WorkflowEngineManager:
 
             # append variable and value to variable pool
             variable_pool.add([variable_node_id]+variable_key_list, value)
+
+    def _workflow_collect_started(self, *, graph: Mapping[str, Any],
+                                  current_collect_node: CollectNode,
+                                  workflow_run_state: WorkflowRunState,
+                                  predecessor_node_id: Optional[str] = None,
+                                  callbacks: Sequence[WorkflowCallback]) -> None:
+        """
+        Workflow collect node started
+        :param current_collect_node: current collect node
+        :param workflow_run_state: workflow run state
+        :param callbacks: workflow callbacks
+        :return:
+        """
+        # get nested nodes
+        collect_nested_nodes = [
+            node for node in graph.get('nodes')
+            if node.get('data', {}).get('collect_id') == current_collect_node.node_id
+        ]
+
+        if not collect_nested_nodes:
+            raise ValueError('collect node has no nested nodes')
+
+        if callbacks:
+            if isinstance(workflow_run_state.current_collect_state, CollectState):
+                for callback in callbacks:
+                    # reuse the iteration event for now
+                    callback.on_workflow_iteration_started(
+                        node_id=current_collect_node.node_id,
+                        node_type=NodeType.ITERATION,
+                        node_run_index=workflow_run_state.workflow_node_steps,
+                        node_data=current_collect_node.node_data,
+                        inputs={},
+                        predecessor_node_id=predecessor_node_id,
+                        metadata=workflow_run_state.current_collect_state.metadata.model_dump()
+                    )
+
+        # add steps
+        workflow_run_state.workflow_node_steps += 1
+
+    def _workflow_collect_next(self, *, graph: Mapping[str, Any],
+                               current_collect_node: CollectNode,
+                               workflow_run_state: WorkflowRunState,
+                               callbacks: Sequence[WorkflowCallback]) -> None:
+        """
+        Workflow collect node next run prepare
+        :param workflow_run_state: workflow run state
+        :return:
+        """
+        if callbacks:
+            if isinstance(workflow_run_state.current_collect_state, CollectState):
+                for callback in callbacks:
+                    # reuse the iteration event for now
+                    callback.on_workflow_iteration_next(
+                        node_id=current_collect_node.node_id,
+                        node_type=NodeType.ITERATION,
+                        index=workflow_run_state.current_collect_state.current_runs,
+                        node_run_index=workflow_run_state.workflow_node_steps,
+                        output={}
+                    )
+        # clear ran nodes
+        workflow_run_state.workflow_node_runs = [
+            node_run for node_run in workflow_run_state.workflow_node_runs
+            # reuse the iteration_node_id for now
+            if node_run.iteration_node_id != current_collect_node.node_id
+        ]
+
+        # clear variables in current collect
+        nodes = graph.get('nodes')
+        nodes = [node for node in nodes if node.get('data', {}).get('collect_id') == current_collect_node.node_id]
+
+        for node in nodes:
+            workflow_run_state.variable_pool.remove((node.get('id'),))
+
+    def _workflow_collect_completed(self, *, current_collect_node: CollectNode,
+                                    workflow_run_state: WorkflowRunState,
+                                    callbacks: Sequence[WorkflowCallback]) -> None:
+        if callbacks:
+            if isinstance(workflow_run_state.current_collect_state, CollectState):
+                for callback in callbacks:
+                    # reuse the iteration event for now
+                    callback.on_workflow_iteration_completed(
+                        node_id=current_collect_node.node_id,
+                        node_type=NodeType.ITERATION,
+                        node_run_index=workflow_run_state.workflow_node_steps,
+                        outputs=current_collect_node.node_run_result.outputs
+                    )
+
+    def _save_workflow_running_collect(self, workflow: Workflow, workflow_run_state: WorkflowRunState):
+        # update or create
+        conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id')).value
+        collect_node_id = workflow_run_state.current_collect_state.collect_node_id
+        current_runs = workflow_run_state.variable_pool.get(
+                (workflow_run_state.current_collect_state.collect_node_id, CollectNode.VAR_NAME_CURRENT_RUNS)
+        ).value
+        variable_dict = {k: v for k, v in workflow_run_state.variable_pool._variable_dictionary.items()
+                         if k != 'sys'}
+        variable_dict_str = json.dumps(jsonable_encoder(variable_dict), ensure_ascii=False)
+
+        running_collect = db.session.query(WorkflowRunningCollect).filter(
+            WorkflowRunningCollect.tenant_id == workflow.tenant_id,
+            WorkflowRunningCollect.app_id == workflow.app_id,
+            WorkflowRunningCollect.workflow_id == workflow.id,
+            WorkflowRunningCollect.workflow_version == workflow.version,
+            WorkflowRunningCollect.conversation_id == conversation_id
+        ).first()
+
+        if not running_collect:
+            running_collect = WorkflowRunningCollect(
+                tenant_id=workflow.tenant_id,
+                app_id=workflow.app_id,
+                workflow_id=workflow.id,
+                workflow_version=workflow.version,
+                conversation_id=conversation_id,
+                collect_node_id=collect_node_id,
+                current_runs=current_runs,
+                created_from=workflow_run_state.invoke_from.value,
+                created_by=workflow_run_state.user_id,
+                variable_dict=variable_dict_str,
+                created_at=datetime.now(timezone.utc).replace(tzinfo=None)
+            )
+            db.session.add(running_collect)
+        else:
+            running_collect.collect_node_id = collect_node_id
+            running_collect.current_runs = current_runs
+            running_collect.variable_dict = variable_dict_str
+            running_collect.updated_at = workflow.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        db.session.commit()
+
+    def _load_workflow_running_collect(self, workflow: Workflow, workflow_run_state: WorkflowRunState) -> Optional[str]:
+        conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id')).value
+
+        running_collect = db.session.query(WorkflowRunningCollect).filter(
+            WorkflowRunningCollect.tenant_id == workflow.tenant_id,
+            WorkflowRunningCollect.app_id == workflow.app_id,
+            WorkflowRunningCollect.workflow_id == workflow.id,
+            WorkflowRunningCollect.workflow_version == workflow.version,
+            WorkflowRunningCollect.conversation_id == conversation_id
+        ).first()
+
+        if not running_collect:
+            return None
+
+        collect_node_id = running_collect.collect_node_id
+        current_variable_pool = workflow_run_state.variable_pool
+        current_var_dict = current_variable_pool._variable_dictionary
+        variable_dict = json.loads(running_collect.variable_dict)
+        for node, var_val in variable_dict.items():
+            if node == 'sys':
+                continue
+            else:
+                for var_hash, var in var_val.items():
+                    var_hash = int(var_hash)
+                    if node not in current_var_dict:
+                        current_var_dict[node] = dict()
+                    value_type = var['value_type']
+                    if value_type == 'array':
+                        current_var_dict[node][var_hash] = factory.build_anonymous_variable(var['value'])
+                    else:
+                        current_var_dict[node][var_hash] = factory.build_variable_from_mapping(var)
+
+        return collect_node_id
+
+    def _delete_workflow_running_collect(self, workflow: Workflow, workflow_run_state: WorkflowRunState):
+        conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id')).value
+
+        db.session.query(WorkflowRunningCollect).filter(
+            WorkflowRunningCollect.tenant_id == workflow.tenant_id,
+            WorkflowRunningCollect.app_id == workflow.app_id,
+            WorkflowRunningCollect.workflow_id == workflow.id,
+            WorkflowRunningCollect.workflow_version == workflow.version,
+            WorkflowRunningCollect.conversation_id == conversation_id
+        ).delete()
+        db.session.commit()

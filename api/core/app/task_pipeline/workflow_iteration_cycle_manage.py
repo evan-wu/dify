@@ -18,6 +18,7 @@ from core.app.entities.task_entities import (
 )
 from core.app.task_pipeline.workflow_cycle_state_manager import WorkflowCycleStateManager
 from core.workflow.entities.node_entities import NodeType
+from core.workflow.nodes.collect.entities import CollectNodeData
 from core.workflow.workflow_engine_manager import WorkflowEngineManager
 from extensions.ext_database import db
 from models.workflow import (
@@ -232,8 +233,12 @@ class WorkflowIterationCycleManage(WorkflowCycleStateManager):
 
         db.session.commit()
 
-        # remove current iteration
-        self._iteration_state.current_iterations.pop(event.node_id, None)
+        # remember the collect node output for using in Answer generate route
+        if isinstance(current_iteration.node_data, CollectNodeData):
+            current_iteration.node_data.output = event.outputs
+        else:
+            # remove current iteration
+            self._iteration_state.current_iterations.pop(event.node_id, None)
 
         # set latest node execution info
         latest_node_execution_info = NodeExecutionInfo(
