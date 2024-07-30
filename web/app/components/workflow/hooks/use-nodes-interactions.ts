@@ -497,7 +497,7 @@ export const useNodesInteractions = () => {
     if (currentNode.data.type === BlockEnum.Start)
       return
 
-    if (currentNode.data.type === BlockEnum.Iteration) {
+    if (currentNode.data.type === BlockEnum.Iteration || currentNode.data.type === BlockEnum.Collect) {
       const iterationChildren = nodes.filter(node => node.parentId === currentNode.id)
 
       if (iterationChildren.length) {
@@ -656,7 +656,7 @@ export const useNodesInteractions = () => {
             }
           }
 
-          if (node.data.type === BlockEnum.Iteration && prevNode.parentId === node.id)
+          if ((node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect) && prevNode.parentId === node.id)
             node.data._children?.push(newNode.id)
         })
         draft.push(newNode)
@@ -754,10 +754,10 @@ export const useNodesInteractions = () => {
             }
           }
 
-          if (node.data.type === BlockEnum.Iteration && nextNode.parentId === node.id)
+          if ((node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect) && nextNode.parentId === node.id)
             node.data._children?.push(newNode.id)
 
-          if (node.data.type === BlockEnum.Iteration && node.data.start_node_id === nextNodeId) {
+          if ((node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect) && node.data.start_node_id === nextNodeId) {
             node.data.start_node_id = newNode.id
             node.data.startNodeType = newNode.data.type
           }
@@ -859,7 +859,7 @@ export const useNodesInteractions = () => {
           if (afterNodesInSameBranchIds.includes(node.id))
             node.position.x += NODE_WIDTH_X_OFFSET
 
-          if (node.data.type === BlockEnum.Iteration && prevNode.parentId === node.id)
+          if ((node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect) && prevNode.parentId === node.id)
             node.data._children?.push(newNode.id)
         })
         draft.push(newNode)
@@ -1108,7 +1108,7 @@ export const useNodesInteractions = () => {
         newNode.id = newNode.id + index
 
         let newChildren: Node[] = []
-        if (nodeToPaste.data.type === BlockEnum.Iteration) {
+        if (nodeToPaste.data.type === BlockEnum.Iteration  || nodeToPaste.data.type === BlockEnum.Collect) {
           newNode.data._children = [];
           (newNode.data as IterationNodeType).start_node_id = ''
 

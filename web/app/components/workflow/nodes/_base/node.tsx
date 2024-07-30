@@ -83,16 +83,16 @@ const BaseNode: FC<BaseNodeProps> = ({
       )}
       ref={nodeRef}
       style={{
-        width: data.type === BlockEnum.Iteration ? data.width : 'auto',
-        height: data.type === BlockEnum.Iteration ? data.height : 'auto',
+        width: data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect? data.width : 'auto',
+        height: data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect? data.height : 'auto',
       }}
     >
       <div
         className={cn(
           'group relative pb-1 shadow-xs',
           'border border-transparent rounded-[15px]',
-          data.type !== BlockEnum.Iteration && 'w-[240px] bg-workflow-block-bg',
-          data.type === BlockEnum.Iteration && 'flex flex-col w-full h-full bg-[#fcfdff]/80',
+          (data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Collect) && 'w-[240px] bg-workflow-block-bg',
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect) && 'flex flex-col w-full h-full bg-[#fcfdff]/80',
           !data._runningStatus && 'hover:shadow-lg',
           showRunningBorder && '!border-primary-500',
           showSuccessBorder && '!border-[#12B76A]',
@@ -109,7 +109,7 @@ const BaseNode: FC<BaseNodeProps> = ({
           )
         }
         {
-          data.type === BlockEnum.Iteration && (
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect) && (
             <NodeResizer
               nodeId={id}
               nodeData={data}
@@ -146,7 +146,7 @@ const BaseNode: FC<BaseNodeProps> = ({
         }
         <div className={cn(
           'flex items-center px-3 pt-3 pb-2 rounded-t-2xl',
-          data.type === BlockEnum.Iteration && 'bg-[rgba(250,252,255,0.9)]',
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect) && 'bg-[rgba(250,252,255,0.9)]',
         )}>
           <BlockIcon
             className='shrink-0 mr-2'
@@ -184,19 +184,19 @@ const BaseNode: FC<BaseNodeProps> = ({
           }
         </div>
         {
-          data.type !== BlockEnum.Iteration && (
+          (data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Collect) && (
             cloneElement(children, { id, data })
           )
         }
         {
-          data.type === BlockEnum.Iteration && (
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect) && (
             <div className='grow pl-1 pr-1 pb-1'>
               {cloneElement(children, { id, data })}
             </div>
           )
         }
         {
-          data.desc && data.type !== BlockEnum.Iteration && (
+          data.desc && (data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Collect) && (
             <div className='px-3 pt-1 pb-2 system-xs-regular text-text-tertiary whitespace-pre-line break-words'>
               {data.desc}
             </div>

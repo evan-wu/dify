@@ -14,6 +14,7 @@ import ToolDefault from './nodes/tool/default'
 import VariableAssignerDefault from './nodes/variable-assigner/default'
 import EndNodeDefault from './nodes/end/default'
 import IterationDefault from './nodes/iteration/default'
+import CollectDefault from './nodes/collect/default'
 
 type NodesExtraData = {
   author: string
@@ -87,6 +88,15 @@ export const NODES_EXTRA_DATA: Record<BlockEnum, NodesExtraData> = {
     getAvailablePrevNodes: IterationDefault.getAvailablePrevNodes,
     getAvailableNextNodes: IterationDefault.getAvailableNextNodes,
     checkValid: IterationDefault.checkValid,
+  },
+  [BlockEnum.Collect]: {
+    author: 'Evan',
+    about: '',
+    availablePrevNodes: [],
+    availableNextNodes: [],
+    getAvailablePrevNodes: CollectDefault.getAvailablePrevNodes,
+    getAvailableNextNodes: CollectDefault.getAvailableNextNodes,
+    checkValid: CollectDefault.checkValid,
   },
   [BlockEnum.Code]: {
     author: 'Dify',
@@ -212,6 +222,12 @@ export const NODES_INITIAL_DATA = {
     desc: '',
     ...IterationDefault.defaultValue,
   },
+  [BlockEnum.Collect]: {
+    type: BlockEnum.Collect,
+    title: '',
+    desc: '',
+    ...CollectDefault.defaultValue,
+  },
   [BlockEnum.Code]: {
     type: BlockEnum.Code,
     title: '',
@@ -318,7 +334,7 @@ export const RETRIEVAL_OUTPUT_STRUCT = `{
 export const SUPPORT_OUTPUT_VARS_NODE = [
   BlockEnum.Start, BlockEnum.LLM, BlockEnum.KnowledgeRetrieval, BlockEnum.Code, BlockEnum.TemplateTransform,
   BlockEnum.HttpRequest, BlockEnum.Tool, BlockEnum.VariableAssigner, BlockEnum.VariableAggregator, BlockEnum.QuestionClassifier,
-  BlockEnum.ParameterExtractor, BlockEnum.Iteration,
+  BlockEnum.ParameterExtractor, BlockEnum.Iteration, BlockEnum.Collect
 ]
 
 export const LLM_OUTPUT_STRUCT: Var[] = [

@@ -25,6 +25,7 @@ export enum BlockEnum {
   Tool = 'tool',
   ParameterExtractor = 'parameter-extractor',
   Iteration = 'iteration',
+  Collect = 'collect',
 }
 
 export type Branch = {

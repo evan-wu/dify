@@ -13,6 +13,7 @@ import { VarType as ToolVarType } from '../../../tool/types'
 import type { ToolNodeType } from '../../../tool/types'
 import type { ParameterExtractorNodeType } from '../../../parameter-extractor/types'
 import type { IterationNodeType } from '../../../iteration/types'
+import type { CollectNodeType } from "../../../collect/types"
 import { BlockEnum, InputVarType, VarType } from '@/app/components/workflow/types'
 import type { StartNodeType } from '@/app/components/workflow/nodes/start/types'
 import type { EnvironmentVariable, Node, NodeOutPutVar, ValueSelector, Var } from '@/app/components/workflow/types'
@@ -234,6 +235,16 @@ const formatItem = (
         {
           variable: 'output',
           type: (data as IterationNodeType).output_type || VarType.arrayString,
+        },
+      ]
+      break
+    }
+
+    case BlockEnum.Collect: {
+      res.vars = [
+        {
+          variable: 'output',
+          type: (data as CollectNodeType).output_type,
         },
       ]
       break
@@ -851,6 +862,18 @@ export const updateNodeVars = (oldNode: Node, oldVarSelector: ValueSelector, new
 
         break
       }
+
+      case BlockEnum.Collect: {
+        const payload = data as CollectNodeType
+        if (payload.check_conditions) {
+          payload.check_conditions = payload.check_conditions.map((c) => {
+            if (c.variable_selector.join('.') === oldVarSelector.join('.'))
+              c.variable_selector = newVarSelector
+            return c
+          })
+        }
+        break
+      }
     }
   })
   return newNode
@@ -962,6 +985,11 @@ export const getNodeOutputVars = (node: Node, isChatMode: boolean): ValueSelecto
     }
 
     case BlockEnum.Iteration: {
+      res.push([id, 'output'])
+      break
+    }
+
+    case BlockEnum.Collect: {
       res.push([id, 'output'])
       break
     }

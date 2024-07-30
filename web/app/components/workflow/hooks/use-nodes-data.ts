@@ -48,12 +48,12 @@ export const useAvailableBlocks = (nodeType?: BlockEnum, isInIteration?: boolean
   return useMemo(() => {
     return {
       availablePrevBlocks: availablePrevBlocks.filter((nType) => {
-        if (isInIteration && (nType === BlockEnum.Iteration || nType === BlockEnum.End))
+        if (isInIteration && (nType === BlockEnum.Iteration || nType == BlockEnum.Collect || nType === BlockEnum.End))
           return false
         return true
       }),
       availableNextBlocks: availableNextBlocks.filter((nType) => {
-        if (isInIteration && (nType === BlockEnum.Iteration || nType === BlockEnum.End))
+        if (isInIteration && (nType === BlockEnum.Iteration || nType == BlockEnum.Collect || nType === BlockEnum.End))
           return false
         return true
       }),
