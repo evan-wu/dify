@@ -20,7 +20,7 @@ from core.workflow.entities.node_entities import SystemVariable
 from core.workflow.nodes.base_node import UserFrom
 from core.workflow.workflow_engine_manager import WorkflowEngineManager
 from extensions.ext_database import db
-from models.model import App, AppModelConfig, Conversation, EndUser, Message
+from models.model import App, Conversation, EndUser, Message
 from models.workflow import Workflow
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class AdvancedChatAppRunner(AppRunner):
 
         # opening statement as first assistant message
         features_dict = workflow.features_dict
-        if 'opening_statement' in features_dict and features_dict['opening_statement']:
+        if features_dict.get('opening_statement'):
             message_history.append({'role': 'assistant', 'content': features_dict['opening_statement']})
 
         db_conv = db.session.query(Conversation).filter(
