@@ -65,7 +65,7 @@ const NodePanel: FC<Props> = ({
     setCollapseState(!nodeInfo.expand)
   }, [nodeInfo.expand, setCollapseState])
 
-  const isIterationNode = nodeInfo.node_type === BlockEnum.Iteration
+  const isIterationNode = nodeInfo.node_type === BlockEnum.Iteration || nodeInfo.node_type === BlockEnum.Collect
   const handleOnShowIterationDetail = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation()
     e.nativeEvent.stopImmediatePropagation()

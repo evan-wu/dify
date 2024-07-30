@@ -69,7 +69,7 @@ const RunPanel: FC<RunProps> = ({ hideResult, activeTab = 'RESULT', runID, getRe
     }[] = []
     allItems.forEach((item) => {
       const { node_type, index, execution_metadata } = item
-      if (node_type !== BlockEnum.Iteration) {
+      if (node_type !== BlockEnum.Iteration && node_type !== BlockEnum.Collect) {
         let isInIteration = false
         let isIterationFirstNode = false
         iterationIndexInfos.forEach(({ start, end }) => {

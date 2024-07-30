@@ -175,6 +175,8 @@ const translation = {
     'variable-aggregator': '变量聚合器',
     'iteration-start': '迭代开始',
     'iteration': '迭代',
+    'collect': '采集',
+    'collect-start': '采集开始',
     'parameter-extractor': '参数提取器',
   },
   blocksAbout: {
@@ -191,6 +193,7 @@ const translation = {
     'variable-assigner': '将多路分支的变量聚合为一个变量，以实现下游节点统一配置。',
     'variable-aggregator': '将多路分支的变量聚合为一个变量，以实现下游节点统一配置。',
     'iteration': '对列表对象执行多次步骤直至输出所有结果。',
+    'collect': '采集用户的输入直到满足退出条件。',
     'parameter-extractor': '利用 LLM 从自然语言内推理提取出结构化参数，用于后置的工具调用或 HTTP 请求。',
   },
   operator: {
@@ -468,6 +471,15 @@ const translation = {
       output: '输出变量',
       iteration_one: '{{count}}个迭代',
       iteration_other: '{{count}}个迭代',
+      currentIteration: '当前迭代',
+    },
+    collect: {
+      deleteTitle: '删除采集节点？',
+      deleteDesc: '删除采集节点将删除所有子节点',
+      input: '输入',
+      output: '输出变量',
+      iteration_one: '',
+      iteration_other: '',
       currentIteration: '当前迭代',
     },
     note: {

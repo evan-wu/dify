@@ -45,6 +45,7 @@ const getIcon = (type: BlockEnum, className: string) => {
     [BlockEnum.VariableAggregator]: <VariableX className={className} />,
     [BlockEnum.Tool]: <VariableX className={className} />,
     [BlockEnum.Iteration]: <Iteration className={className} />,
+    [BlockEnum.Collect]: <Iteration className={className} />,
     [BlockEnum.ParameterExtractor]: <ParameterExtractor className={className} />,
   }[type]
 }
@@ -55,6 +56,7 @@ const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
   [BlockEnum.End]: 'bg-[#F79009]',
   [BlockEnum.IfElse]: 'bg-[#06AED4]',
   [BlockEnum.Iteration]: 'bg-[#06AED4]',
+  [BlockEnum.Collect]: 'bg-[#06AED4]',
   [BlockEnum.HttpRequest]: 'bg-[#875BF7]',
   [BlockEnum.Answer]: 'bg-[#F79009]',
   [BlockEnum.KnowledgeRetrieval]: 'bg-[#16B364]',

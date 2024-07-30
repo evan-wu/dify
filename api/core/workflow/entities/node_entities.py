@@ -27,6 +27,7 @@ class NodeType(Enum):
     LOOP = 'loop'
     ITERATION = 'iteration'
     PARAMETER_EXTRACTOR = 'parameter-extractor'
+    COLLECT = 'collect'
 
     @classmethod
     def value_of(cls, value: str) -> 'NodeType':

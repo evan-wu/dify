@@ -140,7 +140,7 @@ export const initialNodes = (originNodes: Node[], originEdges: Edge[]) => {
       })
     }
 
-    if (node.data.type === BlockEnum.Iteration)
+    if (node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect)
       node.data._children = iterationNodeMap[node.id] || []
 
     return node
@@ -237,6 +237,7 @@ export const canRunBySingle = (nodeType: BlockEnum) => {
     || nodeType === BlockEnum.Tool
     || nodeType === BlockEnum.ParameterExtractor
     || nodeType === BlockEnum.Iteration
+    || nodeType === BlockEnum.Collect
 }
 
 type ConnectedSourceOrTargetNodesChange = {
@@ -299,7 +300,7 @@ export const generateNewNode = ({ data, position, id, zIndex, type, ...rest }: O
     position,
     targetPosition: Position.Left,
     sourcePosition: Position.Right,
-    zIndex: data.type === BlockEnum.Iteration ? ITERATION_NODE_Z_INDEX : zIndex,
+    zIndex: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect) ? ITERATION_NODE_Z_INDEX : zIndex,
     ...rest,
   } as Node
 }
@@ -340,14 +341,14 @@ export const getValidTreeNodes = (nodes: Node[], edges: Edge[]) => {
     if (outgoers.length) {
       outgoers.forEach((outgoer) => {
         list.push(outgoer)
-        if (outgoer.data.type === BlockEnum.Iteration)
+        if (outgoer.data.type === BlockEnum.Iteration || outgoer.data.type === BlockEnum.Collect)
           list.push(...nodes.filter(node => node.parentId === outgoer.id))
         traverse(outgoer, depth + 1)
       })
     }
     else {
       list.push(root)
-      if (root.data.type === BlockEnum.Iteration)
+      if (root.data.type === BlockEnum.Iteration || root.data.type === BlockEnum.Collect)
         list.push(...nodes.filter(node => node.parentId === root.id))
     }
   }

@@ -26,10 +26,12 @@ import ToolDefault from '@/app/components/workflow/nodes/tool/default'
 import VariableAssigner from '@/app/components/workflow/nodes/variable-assigner/default'
 import ParameterExtractorDefault from '@/app/components/workflow/nodes/parameter-extractor/default'
 import IterationDefault from '@/app/components/workflow/nodes/iteration/default'
+import CollectDefault from '@/app/components/workflow/nodes/collect/default'
 import { ssePost } from '@/service/base'
 
 import { getInputVars as doGetInputVars } from '@/app/components/base/prompt-editor/constants'
 import type { NodeTracing } from '@/types/workflow'
+
 const { checkValid: checkLLMValid } = LLMDefault
 const { checkValid: checkKnowledgeRetrievalValid } = KnowledgeRetrievalDefault
 const { checkValid: checkIfElseValid } = IfElseDefault
@@ -41,6 +43,7 @@ const { checkValid: checkToolValid } = ToolDefault
 const { checkValid: checkVariableAssignerValid } = VariableAssigner
 const { checkValid: checkParameterExtractorValid } = ParameterExtractorDefault
 const { checkValid: checkIterationValid } = IterationDefault
+const { checkValid: checkCollectValid } = CollectDefault
 
 const checkValidFns: Record<BlockEnum, Function> = {
   [BlockEnum.LLM]: checkLLMValid,
@@ -55,6 +58,7 @@ const checkValidFns: Record<BlockEnum, Function> = {
   [BlockEnum.VariableAggregator]: checkVariableAssignerValid,
   [BlockEnum.ParameterExtractor]: checkParameterExtractorValid,
   [BlockEnum.Iteration]: checkIterationValid,
+  [BlockEnum.Collect]: checkCollectValid,
 } as any
 
 type Params<T> = {
@@ -96,7 +100,7 @@ const useOneStepRun = <T>({
   const { t } = useTranslation()
   const { getBeforeNodesInSameBranch, getBeforeNodesInSameBranchIncludeParent } = useWorkflow() as any
   const isChatMode = useIsChatMode()
-  const isIteration = data.type === BlockEnum.Iteration
+  const isIteration = data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect
 
   const availableNodes = getBeforeNodesInSameBranch(id)
   const availableNodesIncludeParent = getBeforeNodesInSameBranchIncludeParent(id)
