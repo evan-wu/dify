@@ -102,7 +102,7 @@ const Panel: FC<NodePanelProps<CollectNodeType>> = ({
         <Field
           title={t(`${i18nPrefix}.output`)}
           operations={(
-            <div className='flex items-center h-[18px] px-1 border border-black/8 rounded-[5px] text-xs font-medium text-gray-500 capitalize'>Array</div>
+            <div className='flex items-center h-[18px] px-1 border border-black/8 rounded-[5px] text-xs font-medium text-gray-500 capitalize'>Any</div>
           )}
         >
           <VarReferencePicker
