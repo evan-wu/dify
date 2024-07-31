@@ -511,9 +511,18 @@ export const useNodesInteractions = () => {
           const { setShowConfirm, showConfirm } = workflowStore.getState()
 
           if (!showConfirm) {
+            let deleteTitle = ''
+            let deleteDesc = ''
+            if (currentNode.data.type === BlockEnum.Iteration) {
+              deleteTitle = t('workflow.nodes.iteration.deleteTitle')
+              deleteDesc = t('workflow.nodes.iteration.deleteDesc')
+            } else {
+              deleteTitle = t('workflow.nodes.collect.deleteTitle')
+              deleteDesc = t('workflow.nodes.collect.deleteDesc')
+            }
             setShowConfirm({
-              title: t('workflow.nodes.iteration.deleteTitle'),
-              desc: t('workflow.nodes.iteration.deleteDesc') || '',
+              title: deleteTitle,
+              desc: deleteDesc || '',
               onConfirm: () => {
                 iterationChildren.forEach((child) => {
                   handleNodeDelete(child.id)
