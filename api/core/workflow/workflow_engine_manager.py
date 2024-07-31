@@ -1248,7 +1248,7 @@ class WorkflowEngineManager:
         db.session.commit()
 
     def _load_workflow_running_collect(self, workflow: Workflow, workflow_run_state: WorkflowRunState) -> Optional[str]:
-        conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id')).value
+        conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id'))
         if not conversation_id:
             return None
         else:
