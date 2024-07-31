@@ -1249,6 +1249,10 @@ class WorkflowEngineManager:
 
     def _load_workflow_running_collect(self, workflow: Workflow, workflow_run_state: WorkflowRunState) -> Optional[str]:
         conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id')).value
+        if not conversation_id:
+            return None
+        else:
+            conversation_id = conversation_id.value
 
         running_collect = db.session.query(WorkflowRunningCollect).filter(
             WorkflowRunningCollect.tenant_id == workflow.tenant_id,
