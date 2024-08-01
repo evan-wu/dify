@@ -33,7 +33,7 @@ def build_variable_from_mapping(m: Mapping[str, Any], /) -> Variable:
     if (value_type := m.get('value_type')) is None:
         raise ValueError('missing value type')
     if not m.get('name'):
-        raise ValueError('missing name')
+        m['name'] = 'anonymous'
     if (value := m.get('value')) is None:
         raise ValueError('missing value')
     match value_type:
