@@ -1,0 +1,28 @@
+identity:
+  name: load
+  author: WSZ
+  label:
+    en_US: State Load
+    zh_Hans: 加载对话状态
+    pt_BR: State Load
+description:
+  human:
+    en_US: A tool for loading conversation state.
+    zh_Hans: 加载对话状态工具
+    pt_BR: A tool for loading conversation state.
+  llm: A tool for loading conversation state.
+parameters:
+  - name: conversation_id
+    type: string
+    required: true
+    default: "sys.conversation_id"
+    label:
+      en_US: Conversation Id
+      zh_Hans: 对话ID(sys.conversation_id)
+      pt_BR: Conversation Id
+    human_description:
+      en_US: Conversation Id
+      zh_Hans: 对话ID(请选择sys.conversation_id)
+      pt_BR: State Content
+    llm_description: the current conversation's Id
+    form: llm

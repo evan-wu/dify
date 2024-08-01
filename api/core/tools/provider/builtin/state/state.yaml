@@ -1,0 +1,14 @@
+identity:
+  author: WSZ
+  name: state
+  label:
+    en_US: Conversation State Save/Load
+    zh_Hans: 对话状态保存/加载
+    pt_BR: Conversation State Save/Load
+  description:
+    en_US: Tools for saving/loading conversation states.
+    zh_Hans: 对话状态(变量)保存/加载的工具
+    pt_BR: Tools for saving/loading conversation states.
+  icon: icon.svg
+  tags:
+    - utilities

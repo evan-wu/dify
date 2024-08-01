@@ -300,3 +300,19 @@ class ToolFile(db.Model):
     mimetype = db.Column(db.String(255), nullable=False)
     # original url
     original_url = db.Column(db.String(255), nullable=True)
+
+class StateToolConvState(db.Model):
+    __tablename__ = "state_tool_conv_states"
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='stcs_pkey'),
+        # add index for conversation_id
+        db.Index('stcs_conversation_id_idx', 'conversation_id'),
+    )
+
+    id = db.Column(StringUUID, server_default=db.text('uuid_generate_v4()'))
+    # conversation id
+    conversation_id = db.Column(StringUUID, nullable=False)
+    # content string
+    content = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+    updated_at = db.Column(db.DateTime)
