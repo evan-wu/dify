@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next'
 import useConfig from './use-config'
 import type { AnswerNodeType } from './types'
 import Editor from '@/app/components/workflow/nodes/_base/components/prompt/editor'
-import type { NodePanelProps } from '@/app/components/workflow/types'
+import type {NodePanelProps, Var} from '@/app/components/workflow/types'
 import useAvailableVarList from '@/app/components/workflow/nodes/_base/hooks/use-available-var-list'
+import {ValueSelector} from "@/app/components/workflow/types";
 const i18nPrefix = 'workflow.nodes.answer'
 
 const Panel: FC<NodePanelProps<AnswerNodeType>> = ({
@@ -21,9 +22,12 @@ const Panel: FC<NodePanelProps<AnswerNodeType>> = ({
     filterVar,
   } = useConfig(id, data)
 
+  const theFilterVar = (theVar:Var, selector: ValueSelector) => {
+    return filterVar(theVar) && !theVar.variable.includes('_current_runs_')
+  }
   const { availableVars, availableNodesWithParent } = useAvailableVarList(id, {
     onlyLeafNodeVar: false,
-    filterVar,
+    filterVar: theFilterVar,
   })
 
   return (

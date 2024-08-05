@@ -456,6 +456,22 @@ export const toNodeAvailableVars = ({
     filterVar,
     environmentVariables,
   )
+  const isInCollect = parentNode?.data.type === BlockEnum.Collect
+  if (isInCollect) {
+    const runsCountVar = {
+      nodeId: parentNode?.id,
+      title: '当前采集次数',
+      vars: [
+        {
+          variable: '_current_runs_',
+          type: VarType.number,
+        },
+      ],
+    }
+    if (filterVar(runsCountVar.vars[0], [])) {
+      beforeNodesOutputVars.unshift(<NodeOutPutVar>runsCountVar)
+    }
+  }
   const isInIteration = parentNode?.data.type === BlockEnum.Iteration
   if (isInIteration) {
     const iterationNode: any = parentNode

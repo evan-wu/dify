@@ -1,7 +1,6 @@
-import { BlockEnum } from '../../types'
 import type { NodeDefault } from '../../types'
 import type { CollectNodeType } from './types'
-import { ALL_CHAT_AVAILABLE_BLOCKS, ALL_COMPLETION_AVAILABLE_BLOCKS } from '@/app/components/workflow/constants'
+import { ALL_CHAT_AVAILABLE_BLOCKS } from '@/app/components/workflow/constants'
 import {LogicalOperator} from "@/app/components/workflow/nodes/if-else/types";
 const i18nPrefix = 'workflow'
 
@@ -16,11 +15,11 @@ const nodeDefault: NodeDefault<CollectNodeType> = {
   getAvailablePrevNodes(isChatMode: boolean) {
     const nodes = isChatMode
       ? ALL_CHAT_AVAILABLE_BLOCKS
-      : ALL_COMPLETION_AVAILABLE_BLOCKS.filter(type => type !== BlockEnum.End)
+      : []
     return nodes
   },
   getAvailableNextNodes(isChatMode: boolean) {
-    const nodes = isChatMode ? ALL_CHAT_AVAILABLE_BLOCKS : ALL_COMPLETION_AVAILABLE_BLOCKS
+    const nodes = isChatMode ? ALL_CHAT_AVAILABLE_BLOCKS : []
     return nodes
   },
   checkValid(payload: CollectNodeType, t: any) {
