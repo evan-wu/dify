@@ -56,10 +56,10 @@ def run_code():
             }
         }
     except Exception as e:
-        logging.error("Failed to execute code: {}".format(req), e)
+        logging.exception("Failed to execute code", e)
         result_wrapped = {
             "code": 0,
-            "message": "success",
+            "message": "failure",
             "data": {
                 "error": str(e),
                 "stdout": ""
