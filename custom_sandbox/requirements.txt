@@ -1,0 +1,12 @@
+flask
+gevent
+gunicorn
+pandas
+numpy
+requests
+pillow
+matplotlib
+moviepy
+pyaudio
+sounddevice
+opencv_python_headless
