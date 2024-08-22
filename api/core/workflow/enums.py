@@ -11,3 +11,4 @@ class SystemVariableKey(str, Enum):
     CONVERSATION_ID = "conversation_id"
     USER_ID = "user_id"
     DIALOGUE_COUNT = "dialogue_count"
+    MESSAGE_HISTORY = "message_history"

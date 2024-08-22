@@ -259,6 +259,8 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         inputs = application_generate_entity.inputs
         query = application_generate_entity.query
         files = application_generate_entity.files
+        # get conversation history
+        message_history = self.get_message_history(application_generate_entity.app_config.app_id, conversation.id, workflow)
 
         user_id = None
         if application_generate_entity.invoke_from in [InvokeFrom.WEB_APP, InvokeFrom.SERVICE_API]:
@@ -275,6 +277,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             SystemVariableKey.CONVERSATION_ID: conversation_id,
             SystemVariableKey.USER_ID: user_id,
             SystemVariableKey.DIALOGUE_COUNT: conversation_dialogue_count,
+            SystemVariableKey.MESSAGE_HISTORY: message_history,
         }
         variable_pool = VariablePool(
             system_variables=system_inputs,
@@ -412,3 +415,27 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             else:
                 logger.exception(e)
                 raise e
+
+    def get_message_history(self, app_id, conversation_id, workflow: Workflow):
+        message_history = []
+
+        # opening statement as first assistant message
+        features_dict = workflow.features_dict
+        if features_dict.get('opening_statement'):
+            message_history.append({'role': 'assistant', 'content': features_dict['opening_statement']})
+
+        db_conv = db.session.query(Conversation).filter(
+            Conversation.app_id == app_id,
+            Conversation.id == conversation_id
+        ).first()
+
+        if db_conv:
+            db_query = db.session.query(Message).filter(
+                Message.conversation_id == conversation_id,
+                Message.answer != ''
+            ).order_by(Message.created_at.asc())
+            history_messages = db_query.all()
+            for db_message in history_messages:
+                message_history.append({'role': 'user', 'content': db_message.query})
+                message_history.append({'role': 'assistant', 'content': db_message.answer})
+        return message_history

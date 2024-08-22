@@ -29,30 +29,6 @@ class AdvancedChatAppRunner(AppRunner):
     AdvancedChat Application Runner
     """
 
-    def get_message_history(self, app_id, conversation_id, workflow: Workflow):
-        message_history = []
-
-        # opening statement as first assistant message
-        features_dict = workflow.features_dict
-        if features_dict.get('opening_statement'):
-            message_history.append({'role': 'assistant', 'content': features_dict['opening_statement']})
-
-        db_conv = db.session.query(Conversation).filter(
-            Conversation.app_id == app_id,
-            Conversation.id == conversation_id
-        ).first()
-
-        if db_conv:
-            db_query = db.session.query(Message).filter(
-                Message.conversation_id == conversation_id,
-                Message.answer != ''
-            ).order_by(Message.created_at.asc())
-            history_messages = db_query.all()
-            for db_message in history_messages:
-                message_history.append({'role': 'user', 'content': db_message.query})
-                message_history.append({'role': 'assistant', 'content': db_message.answer})
-        return message_history
-
     def run(
         self,
         application_generate_entity: AdvancedChatAppGenerateEntity,
@@ -79,15 +55,6 @@ class AdvancedChatAppRunner(AppRunner):
 
         inputs = application_generate_entity.inputs
         query = application_generate_entity.query
-        files = application_generate_entity.files
-
-        user_id = None
-        if application_generate_entity.invoke_from in [InvokeFrom.WEB_APP, InvokeFrom.SERVICE_API]:
-            end_user = db.session.query(EndUser).filter(EndUser.id == application_generate_entity.user_id).first()
-            if end_user:
-                user_id = end_user.session_id
-        else:
-            user_id = application_generate_entity.user_id
 
         # moderation
         if self.handle_input_moderation(
@@ -109,9 +76,6 @@ class AdvancedChatAppRunner(AppRunner):
             app_generate_entity=application_generate_entity,
         ):
             return
-
-        # get conversation history
-        message_history = self.get_message_history(app_config.app_id, conversation.id, workflow)
 
         db.session.close()
 
