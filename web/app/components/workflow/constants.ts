@@ -16,6 +16,7 @@ import AssignerDefault from './nodes/assigner/default'
 import EndNodeDefault from './nodes/end/default'
 import IterationDefault from './nodes/iteration/default'
 import CollectDefault from './nodes/collect/default'
+import IterationStartDefault from './nodes/iteration-start/default'
 
 type NodesExtraData = {
   author: string
@@ -98,6 +99,15 @@ export const NODES_EXTRA_DATA: Record<BlockEnum, NodesExtraData> = {
     getAvailablePrevNodes: CollectDefault.getAvailablePrevNodes,
     getAvailableNextNodes: CollectDefault.getAvailableNextNodes,
     checkValid: CollectDefault.checkValid,
+  },
+  [BlockEnum.IterationStart]: {
+    author: 'Dify',
+    about: '',
+    availablePrevNodes: [],
+    availableNextNodes: [],
+    getAvailablePrevNodes: IterationStartDefault.getAvailablePrevNodes,
+    getAvailableNextNodes: IterationStartDefault.getAvailableNextNodes,
+    checkValid: IterationStartDefault.checkValid,
   },
   [BlockEnum.Code]: {
     author: 'Dify',
@@ -238,6 +248,12 @@ export const NODES_INITIAL_DATA = {
     desc: '',
     ...CollectDefault.defaultValue,
   },
+  [BlockEnum.IterationStart]: {
+    type: BlockEnum.IterationStart,
+    title: '',
+    desc: '',
+    ...IterationStartDefault.defaultValue,
+  },
   [BlockEnum.Code]: {
     type: BlockEnum.Code,
     title: '',
@@ -321,11 +337,13 @@ export const AUTO_LAYOUT_OFFSET = {
 export const ITERATION_NODE_Z_INDEX = 1
 export const ITERATION_CHILDREN_Z_INDEX = 1002
 export const ITERATION_PADDING = {
-  top: 85,
+  top: 65,
   right: 16,
   bottom: 20,
   left: 16,
 }
+export const PARALLEL_LIMIT = 10
+export const PARALLEL_DEPTH_LIMIT = 3
 
 export const RETRIEVAL_OUTPUT_STRUCT = `{
   "content": "",
@@ -428,4 +446,5 @@ export const PARAMETER_EXTRACTOR_COMMON_STRUCT: Var[] = [
 
 export const WORKFLOW_DATA_UPDATE = 'WORKFLOW_DATA_UPDATE'
 export const CUSTOM_NODE = 'custom'
+export const CUSTOM_EDGE = 'custom'
 export const DSL_EXPORT_CHECK = 'DSL_EXPORT_CHECK'

@@ -48,13 +48,16 @@ class WorkflowRunState:
     current_iteration_state: Optional[BaseIterationState]
     current_collect_state: Optional[CollectState]
 
-    def __init__(self, workflow: Workflow,
-                 start_at: float,
-                 variable_pool: VariablePool,
-                 user_id: str,
-                 user_from: UserFrom,
-                 invoke_from: InvokeFrom,
-                 workflow_call_depth: int):
+    def __init__(
+        self,
+        workflow: Workflow,
+        start_at: float,
+        variable_pool: VariablePool,
+        user_id: str,
+        user_from: UserFrom,
+        invoke_from: InvokeFrom,
+        workflow_call_depth: int,
+    ):
         self.workflow_id = workflow.id
         self.tenant_id = workflow.tenant_id
         self.app_id = workflow.app_id
@@ -68,9 +71,8 @@ class WorkflowRunState:
         self.variable_pool = variable_pool
 
         self.total_tokens = 0
-        self.workflow_nodes_and_results = []
 
-        self.current_iteration_state = None
-        self.current_collect_state = None
         self.workflow_node_steps = 1
         self.workflow_node_runs = []
+        self.current_iteration_state = None
+        self.current_collect_state = None
