@@ -8,6 +8,7 @@ import {
   useNodesInitialized,
   useViewport,
 } from 'reactflow'
+import { IterationStartNodeDumb } from '../iteration-start'
 import { useNodeCollectInteractions } from './use-interactions'
 import type { CollectNodeType } from './types'
 import AddBlock from './add-block'
@@ -29,7 +30,7 @@ const Node: FC<NodeProps<CollectNodeType>> = ({
 
   return (
     <div className={cn(
-      'relative min-w-[258px] min-h-[118px] w-full h-full rounded-2xl bg-[#F0F2F7]/90',
+      'relative min-w-[240px] min-h-[90px] w-full h-full rounded-2xl bg-[#F0F2F7]/90',
     )}>
       <Background
         id={`collect-background-${id}`}
@@ -38,10 +39,19 @@ const Node: FC<NodeProps<CollectNodeType>> = ({
         size={2 / zoom}
         color='#E4E5E7'
       />
-      <AddBlock
-        collectNodeId={id}
-        collectNodeData={data}
-      />
+      {
+        data._isCandidate && (
+          <IterationStartNodeDumb />
+        )
+      }
+      {
+        data._children!.length === 1 && (
+          <AddBlock
+            collectNodeId={id}
+            collectNodeData={data}
+          />
+        )
+      }
     </div>
   )
 }

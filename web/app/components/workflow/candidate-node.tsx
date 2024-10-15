@@ -54,7 +54,7 @@ const CandidateNode = () => {
             y,
           },
         })
-        if (candidateNode.data.type === BlockEnum.Iteration)
+        if (candidateNode.data.type === BlockEnum.Iteration || candidateNode.data.type === BlockEnum.Collect)
           draft.push(getIterationStartNode(candidateNode.id))
       })
       setNodes(newNodes)

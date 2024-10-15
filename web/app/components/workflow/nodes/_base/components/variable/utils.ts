@@ -437,7 +437,7 @@ export const getVarType = ({
     conversationVariables,
   )
 
-  const isIterationInnerVar = parentNode?.data.type === BlockEnum.Iteration
+  const isIterationInnerVar = parentNode?.data.type === BlockEnum.Iteration || parentNode?.data.type === BlockEnum.Collect
   if (isIterationItem) {
     return getIterationItemType({
       valueSelector,

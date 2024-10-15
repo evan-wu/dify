@@ -120,7 +120,7 @@ const VarReferencePicker: FC<Props> = ({
   const isIterationVar = useMemo(() => {
     if (!isInIteration)
       return false
-    if (value[0] === node?.parentId && ['item', 'index'].includes(value[1]))
+    if (value[0] === node?.parentId && ['item', 'index', '_current_runs_'].includes(value[1]))
       return true
     return false
   }, [isInIteration, value, node])

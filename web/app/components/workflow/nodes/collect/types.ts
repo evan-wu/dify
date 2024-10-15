@@ -4,7 +4,7 @@ import type {
   ValueSelector,
   VarType,
 } from '@/app/components/workflow/types'
-import {Condition, LogicalOperator} from "@/app/components/workflow/nodes/if-else/types";
+import { Condition, LogicalOperator } from "@/app/components/workflow/nodes/if-else/types";
 
 export type CollectNodeType = CommonNodeType & {
   startNodeType?: BlockEnum

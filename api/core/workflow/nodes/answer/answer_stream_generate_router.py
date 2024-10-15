@@ -153,6 +153,7 @@ class AnswerStreamGeneratorRouter:
                 NodeType.IF_ELSE.value,
                 NodeType.QUESTION_CLASSIFIER.value,
                 NodeType.ITERATION.value,
+                NodeType.COLLECT.value,
             }:
                 answer_dependencies[answer_node_id].append(source_node_id)
             else:

@@ -20,8 +20,8 @@ import {
   HandleRemoveCondition,
   HandleUpdateCondition, HandleUpdateConditionLogicalOperator
 } from "@/app/components/workflow/nodes/if-else/types";
-import {v4 as uuid4} from "uuid";
-import {getOperators} from "@/app/components/workflow/nodes/if-else/utils";
+import { v4 as uuid4 } from "uuid";
+import { getOperators } from "@/app/components/workflow/nodes/if-else/utils";
 
 const DELIMITER = '@@@@@'
 const useConfig = (id: string, payload: CollectNodeType) => {
@@ -46,14 +46,6 @@ const useConfig = (id: string, payload: CollectNodeType) => {
   const filterNumberVar = useCallback((varPayload: Var) => {
     return varPayload.type === VarType.number
   }, [])
-
-  const {
-    availableVars: availableNumberVars,
-    availableNodesWithParent: availableNumberNodesWithParent,
-  } = useAvailableVarList(id, {
-    onlyLeafNodeVar: false,
-    filterVar: filterNumberVar,
-  })
 
   // check_conditions and output
   const { getIterationNodeChildren, getBeforeNodesInSameBranch } = useWorkflow()

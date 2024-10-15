@@ -86,8 +86,8 @@ const BaseNode: FC<BaseNodeProps> = ({
       )}
       ref={nodeRef}
       style={{
-        width: data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect? data.width : 'auto',
-        height: data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect? data.height : 'auto',
+        width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect)? data.width : 'auto',
+        height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect)? data.height : 'auto',
       }}
     >
       <div

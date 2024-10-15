@@ -121,6 +121,7 @@ export const useNodeCollectInteractions = () => {
           _connectedSourceHandleIds: [],
           _connectedTargetHandleIds: [],
           title: nodesWithSameType.length > 0 ? `${t(`workflow.blocks.${childNodeType}`)} ${nodesWithSameType.length + 1}` : t(`workflow.blocks.${childNodeType}`),
+          collect_id: newNodeId,
         },
         position: child.position,
         positionAbsolute: child.positionAbsolute,

@@ -122,7 +122,7 @@ export function generateNewNode({ data, position, id, zIndex, type, ...rest }: O
     position,
     targetPosition: Position.Left,
     sourcePosition: Position.Right,
-    zIndex: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect) ? ITERATION_NODE_Z_INDEX : zIndex,
+    zIndex: data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect? ITERATION_NODE_Z_INDEX : zIndex,
     ...rest,
   } as Node
 
@@ -142,7 +142,7 @@ export function generateNewNode({ data, position, id, zIndex, type, ...rest }: O
 }
 
 export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
-  const hasIterationNode = nodes.some(node => node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect)
+  const hasIterationNode = nodes.some(node => node.data.type === BlockEnum.Iteration)
 
   if (!hasIterationNode) {
     return {
@@ -160,7 +160,7 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
   for (let i = 0; i < nodes.length; i++) {
     const currentNode = nodes[i] as Node<IterationNodeType>
 
-    if (currentNode.data.type === BlockEnum.Iteration || currentNode.data.type === BlockEnum.Collect) {
+    if (currentNode.data.type === BlockEnum.Iteration) {
       if (currentNode.data.start_node_id) {
         if (nodesMap[currentNode.data.start_node_id]?.type !== CUSTOM_ITERATION_START_NODE)
           iterationNodesWithStartNode.push(currentNode)
@@ -202,7 +202,7 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
     }
   })
   nodes.forEach((node) => {
-    if ((node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect) && newIterationStartNodesMap[node.id])
+    if (node.data.type === BlockEnum.Iteration && newIterationStartNodesMap[node.id])
       (node.data as IterationNodeType).start_node_id = newIterationStartNodesMap[node.id].id
   })
 

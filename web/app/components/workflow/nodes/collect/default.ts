@@ -11,6 +11,7 @@ const nodeDefault: NodeDefault<CollectNodeType> = {
     check_conditions: [],
     logical_operator: LogicalOperator.and,
     output_selector: [],
+    _children: [],
   },
   getAvailablePrevNodes(isChatMode: boolean) {
     const nodes = isChatMode

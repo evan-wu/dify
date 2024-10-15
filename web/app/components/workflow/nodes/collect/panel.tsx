@@ -1,19 +1,22 @@
-import type {FC} from 'react'
+import type { FC } from 'react'
 import React from 'react'
-import {useTranslation} from 'react-i18next'
-import {RiArrowRightSLine,} from '@remixicon/react'
+import { useTranslation } from 'react-i18next'
+import {
+  RiArrowRightSLine,
+} from '@remixicon/react'
 import VarReferencePicker from '../_base/components/variable/var-reference-picker'
 import Split from '../_base/components/split'
 import ResultPanel from '../../run/result-panel'
 import type {CollectNodeType,} from './types'
 import useConfig from './use-config'
-import {type NodePanelProps} from '@/app/components/workflow/types'
+import { type NodePanelProps } from '@/app/components/workflow/types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
 import BeforeRunForm from '@/app/components/workflow/nodes/_base/components/before-run-form'
 import ConditionAdd from "@/app/components/workflow/nodes/if-else/components/condition-add";
-import {useGetAvailableVars} from "@/app/components/workflow/nodes/variable-assigner/hooks";
+import { useGetAvailableVars } from "@/app/components/workflow/nodes/variable-assigner/hooks";
 import ConditionList from "@/app/components/workflow/nodes/if-else/components/condition-list";
-import {CaseItem, LogicalOperator} from "@/app/components/workflow/nodes/if-else/types";
+import { CaseItem, LogicalOperator } from "@/app/components/workflow/nodes/if-else/types";
+import { useWorkflow } from "@/app/components/workflow/hooks";
 
 const i18nPrefix = 'workflow.nodes.collect'
 
@@ -42,6 +45,8 @@ const Panel: FC<NodePanelProps<CollectNodeType>> = ({
 
   const caseItem = {case_id: 'true', id: 'true',
     conditions: data.check_conditions, logical_operator: data.logical_operator || LogicalOperator.and} as CaseItem
+  const { getIterationNodeChildren } = useWorkflow()
+  const availableNodesAll = [...availableNodes, ...getIterationNodeChildren(id)]
 
   return (
     <div className='mt-2'>
@@ -69,7 +74,7 @@ const Panel: FC<NodePanelProps<CollectNodeType>> = ({
             onRemoveCondition={handleRemoveCondition}
             onUpdateConditionLogicalOperator={handleUpdateConditionLogicalOperator}
             nodesOutputVars={nodesOutputVars}
-            availableNodes={availableNodes}
+            availableNodes={availableNodesAll}
             numberVariables={getAvailableVars(id, '', filterNumberVar)}
           />
         </div>

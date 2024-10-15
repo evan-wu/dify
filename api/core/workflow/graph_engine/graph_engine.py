@@ -5,11 +5,13 @@ import uuid
 from collections.abc import Generator, Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, Optional
+import json
 
 from flask import Flask, current_app
 
 from core.app.apps.base_app_queue_manager import GenerateTaskStoppedError
 from core.app.entities.app_invoke_entities import InvokeFrom
+from core.app.segments import factory
 from core.workflow.entities.node_entities import (
     NodeRunMetadataKey,
     NodeType,
@@ -38,12 +40,17 @@ from core.workflow.graph_engine.entities.graph_runtime_state import GraphRuntime
 from core.workflow.graph_engine.entities.runtime_route_state import RouteNodeState
 from core.workflow.nodes.answer.answer_stream_processor import AnswerStreamProcessor
 from core.workflow.nodes.base_node import BaseNode
+from core.workflow.nodes.collect.collect_node import CollectNode
 from core.workflow.nodes.end.end_stream_processor import EndStreamProcessor
 from core.workflow.nodes.event import RunCompletedEvent, RunRetrieverResourceEvent, RunStreamChunkEvent
 from core.workflow.nodes.node_mapping import node_classes
 from extensions.ext_database import db
-from models.workflow import WorkflowNodeExecutionStatus, WorkflowType
-
+from models.workflow import (
+    Workflow,
+    WorkflowNodeExecutionStatus,
+    WorkflowRunningCollect,
+    WorkflowType
+)
 logger = logging.getLogger(__name__)
 
 
@@ -143,7 +150,28 @@ class GraphEngine:
             )
 
             # run graph
-            generator = stream_processor.process(self._run(start_node_id=self.graph.root_node_id))
+
+            # load pending collect, can skip if workflow has no Collect Node
+            collect_nodes = [node for node in [self.graph.node_id_config_mapping[node_id]
+                                               for node_id in self.graph.node_ids]
+                             if node.get("data", {}).get("type")
+                             and node.get("data", {}).get("type").lower() == NodeType.COLLECT.value
+            ]
+            pending_collect_node_id = None
+            if collect_nodes:
+                workflow = db.session.query(Workflow).filter(
+                    Workflow.id == self.init_params.workflow_id
+                ).first()
+                pending_collect_node_id = self._load_workflow_running_collect(workflow, self.graph_runtime_state)
+                if pending_collect_node_id:
+                    # set _is_resumed_collect_
+                    self.graph_runtime_state.variable_pool.add(
+                        (pending_collect_node_id, CollectNode.VAR_NAME_IS_RESUMED_COLLECT),
+                        True
+                    )
+
+            generator = stream_processor.process(self._run(start_node_id=self.graph.root_node_id if
+                                                 not pending_collect_node_id else pending_collect_node_id))
 
             for item in generator:
                 try:
@@ -247,6 +275,8 @@ class GraphEngine:
                 thread_pool_id=self.thread_pool_id,
             )
 
+            # mark if exit workflow because of some node running result
+            early_exit = False
             try:
                 # run node
                 generator = self._run_node(
@@ -262,7 +292,10 @@ class GraphEngine:
                     if isinstance(item, NodeRunStartedEvent):
                         self.graph_runtime_state.node_run_steps += 1
                         item.route_node_state.index = self.graph_runtime_state.node_run_steps
-
+                    elif isinstance(item, GraphRunSucceededEvent):
+                        # for collect node early exit
+                        early_exit = True
+                        break
                     yield item
 
                 self.graph_runtime_state.node_run_state.node_state_mapping[route_node_state.id] = route_node_state
@@ -288,6 +321,10 @@ class GraphEngine:
                     parent_parallel_start_node_id=parent_parallel_start_node_id,
                 )
                 raise e
+
+            if early_exit:
+                logger.info('Early exiting workflow!')
+                break
 
             # It may not be necessary, but it is necessary. :)
             if (
@@ -678,6 +715,9 @@ class GraphEngine:
                             parent_parallel_id=parent_parallel_id,
                             parent_parallel_start_node_id=parent_parallel_start_node_id,
                         )
+                    elif isinstance(item, GraphRunSucceededEvent):
+                        # this event is for collect node early exit workflow
+                        yield item
         except GenerateTaskStoppedError:
             # trigger node run failed event
             route_node_state.status = RouteNodeState.Status.FAILED
@@ -728,6 +768,46 @@ class GraphEngine:
         :return:
         """
         return time.perf_counter() - start_at > max_execution_time
+
+    def _load_workflow_running_collect(self, workflow: Workflow, workflow_run_state: GraphRuntimeState) -> Optional[str]:
+        conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id'))
+        if not conversation_id:
+            return None
+        else:
+            conversation_id = conversation_id.value
+
+        running_collect = db.session.query(WorkflowRunningCollect).filter(
+            WorkflowRunningCollect.tenant_id == workflow.tenant_id,
+            WorkflowRunningCollect.app_id == workflow.app_id,
+            WorkflowRunningCollect.workflow_id == workflow.id,
+            WorkflowRunningCollect.workflow_version == workflow.version,
+            WorkflowRunningCollect.conversation_id == conversation_id
+        ).first()
+
+        if not running_collect:
+            return None
+
+        collect_node_id = running_collect.collect_node_id
+        current_variable_pool = workflow_run_state.variable_pool
+        current_var_dict = current_variable_pool.variable_dictionary
+        variable_dict = json.loads(running_collect.variable_dict)
+        for node, var_val in variable_dict.items():
+            if node == 'sys':
+                continue
+            else:
+                for var_hash, var in var_val.items():
+                    var_hash = int(var_hash)
+                    if node not in current_var_dict:
+                        current_var_dict[node] = dict()
+                    value_type = var['value_type']
+                    if 'array' in value_type:
+                        current_var_dict[node][var_hash] = factory.build_segment(var['value'])
+                    else:
+                        if 'name' not in var:
+                            var['name'] = 'anonymous'
+                        current_var_dict[node][var_hash] = factory.build_variable_from_mapping(var)
+
+        return collect_node_id
 
 
 class GraphRunFailedError(Exception):
