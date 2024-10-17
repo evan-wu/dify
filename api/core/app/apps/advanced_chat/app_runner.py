@@ -27,7 +27,7 @@ from core.workflow.enums import SystemVariableKey
 from core.workflow.workflow_entry import WorkflowEntry
 from extensions.ext_database import db
 from models.model import App, Conversation, EndUser, Message
-from models.workflow import ConversationVariable, WorkflowType
+from models.workflow import ConversationVariable, WorkflowType, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +147,10 @@ class AdvancedChatAppRunner(WorkflowBasedAppRunner):
                 SystemVariableKey.FILES: files,
                 SystemVariableKey.CONVERSATION_ID: self.conversation.id,
                 SystemVariableKey.USER_ID: user_id,
+                SystemVariableKey.MESSAGE_HISTORY: self.get_message_history(app_config.app_id,
+                                                                            self.conversation,
+                                                                            app_config.workflow_id,
+                                                                            self.conversation.dialogue_count == 1),
                 SystemVariableKey.DIALOGUE_COUNT: conversation_dialogue_count,
                 SystemVariableKey.APP_ID: app_config.app_id,
                 SystemVariableKey.WORKFLOW_ID: app_config.workflow_id,
@@ -263,3 +267,25 @@ class AdvancedChatAppRunner(WorkflowBasedAppRunner):
         self._publish_event(QueueTextChunkEvent(text=text))
 
         self._publish_event(QueueStopEvent(stopped_by=stopped_by))
+
+    def get_message_history(self, app_id: str, conversation: Conversation, workflow_id: str, is_first_message: bool):
+        message_history = []
+
+        # opening statement as first assistant message
+        workflow = db.session.query(Workflow).filter(Workflow.id == workflow_id).first()
+        features_dict = workflow.features_dict
+        if features_dict.get('opening_statement'):
+            message_history.append({'role': 'assistant', 'content': features_dict['opening_statement']})
+
+        if is_first_message:
+            return message_history
+        else:
+            db_query = db.session.query(Message).filter(
+                Message.conversation_id == conversation.id,
+                Message.answer != ''
+            ).order_by(Message.created_at.asc()).limit(50)
+            history_messages = db_query.all()
+            for db_message in history_messages:
+                message_history.append({'role': 'user', 'content': db_message.query})
+                message_history.append({'role': 'assistant', 'content': db_message.answer})
+        return message_history
