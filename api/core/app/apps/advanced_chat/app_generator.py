@@ -115,11 +115,13 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
 
         workflow_run_id = str(uuid.uuid4())
         # init application generate entity
+        current_inputs = self._get_cleaned_inputs(inputs, app_config)
         application_generate_entity = AdvancedChatAppGenerateEntity(
             task_id=str(uuid.uuid4()),
             app_config=app_config,
             conversation_id=conversation.id if conversation else None,
-            inputs=conversation.inputs if conversation else self._get_cleaned_inputs(inputs, app_config),
+            # change inputs behavior, use current inputs if available
+            inputs=current_inputs if current_inputs else conversation.inputs if conversation else {},
             query=query,
             files=file_objs,
             parent_message_id=args.get("parent_message_id"),
