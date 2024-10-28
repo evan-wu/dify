@@ -66,6 +66,11 @@ export const BLOCKS: Block[] = [
   },
   {
     classification: BlockClassificationEnum.Transform,
+    type: BlockEnum.DocExtractor,
+    title: 'Doc Extractor',
+  },
+  {
+    classification: BlockClassificationEnum.Transform,
     type: BlockEnum.Assigner,
     title: 'Variable Assigner',
   },
@@ -78,6 +83,11 @@ export const BLOCKS: Block[] = [
     classification: BlockClassificationEnum.Utilities,
     type: BlockEnum.HttpRequest,
     title: 'HTTP Request',
+  },
+  {
+    classification: BlockClassificationEnum.Utilities,
+    type: BlockEnum.ListFilter,
+    title: 'List Filter',
   },
 ]
 

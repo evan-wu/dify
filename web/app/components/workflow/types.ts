@@ -3,10 +3,10 @@ import type {
   Node as ReactFlowNode,
   Viewport,
 } from 'reactflow'
-import type { TransferMethod } from '@/types/app'
+import type { Resolution, TransferMethod } from '@/types/app'
 import type { ToolDefaultValue } from '@/app/components/workflow/block-selector/types'
 import type { VarType as VarKindType } from '@/app/components/workflow/nodes/tool/types'
-import type { NodeTracing } from '@/types/workflow'
+import type { FileResponse, NodeTracing } from '@/types/workflow'
 import type { Collection, Tool } from '@/app/components/tools/types'
 import type { ChatVarType } from '@/app/components/workflow/panel/chat-variable-panel/type'
 
@@ -27,6 +27,8 @@ export enum BlockEnum {
   ParameterExtractor = 'parameter-extractor',
   Iteration = 'iteration',
   Collect = 'collect',
+  DocExtractor = 'document-extractor',
+  ListFilter = 'list-operator',
   IterationStart = 'iteration-start',
   Assigner = 'assigner', // is now named as VariableAssigner
 }
@@ -126,6 +128,12 @@ export type ConversationVariable = {
   description: string
 }
 
+export type GlobalVariable = {
+  name: string
+  value_type: 'string' | 'number'
+  description: string
+}
+
 export type VariableWithValue = {
   key: string
   value: string
@@ -141,6 +149,8 @@ export enum InputVarType {
   json = 'json', // obj, array
   contexts = 'contexts', // knowledge retrieval
   iterator = 'iterator', // iteration input
+  singleFile = 'file',
+  multiFiles = 'file-list',
 }
 
 export type InputVar = {
@@ -158,7 +168,7 @@ export type InputVar = {
   hint?: string
   options?: string[]
   value_selector?: ValueSelector
-}
+} & Partial<UploadFileSetting>
 
 export type ModelConfig = {
   provider: string
@@ -211,8 +221,8 @@ export enum VarType {
   secret = 'secret',
   boolean = 'boolean',
   object = 'object',
-  array = 'array',
   file = 'file',
+  array = 'array',
   arrayString = 'array[string]',
   arrayNumber = 'array[number]',
   arrayObject = 'array[object]',
@@ -317,6 +327,7 @@ export type WorkflowRunningData = {
     steps?: number
     showSteps?: boolean
     total_steps?: number
+    files?: FileResponse[]
   }
   tracing?: NodeTracing[]
 }
@@ -343,4 +354,25 @@ export type MoreInfo = {
 
 export type ToolWithProvider = Collection & {
   tools: Tool[]
+}
+
+export enum SupportUploadFileTypes {
+  image = 'image',
+  document = 'document',
+  audio = 'audio',
+  video = 'video',
+  custom = 'custom',
+}
+
+export type UploadFileSetting = {
+  allowed_file_upload_methods: TransferMethod[]
+  allowed_file_types: SupportUploadFileTypes[]
+  allowed_file_extensions?: string[]
+  max_length: number
+  number_limits?: number
+}
+
+export type VisionSetting = {
+  variable_selector: ValueSelector
+  detail: Resolution
 }

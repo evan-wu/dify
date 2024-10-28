@@ -21,11 +21,12 @@ from core.app.apps.message_based_app_generator import MessageBasedAppGenerator
 from core.app.apps.message_based_app_queue_manager import MessageBasedAppQueueManager
 from core.app.entities.app_invoke_entities import AdvancedChatAppGenerateEntity, InvokeFrom
 from core.app.entities.task_entities import ChatbotAppBlockingResponse, ChatbotAppStreamResponse
-from core.file.message_file_parser import MessageFileParser
 from core.model_runtime.errors.invoke import InvokeAuthorizationError, InvokeError
 from core.ops.ops_trace_manager import TraceQueueManager
 from extensions.ext_database import db
+from factories import file_factory
 from models.account import Account
+from models.enums import CreatedByRole
 from models.model import App, Conversation, EndUser, Message
 from models.workflow import Workflow
 
@@ -96,10 +97,16 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
 
         # parse files
         files = args["files"] if args.get("files") else []
-        message_file_parser = MessageFileParser(tenant_id=app_model.tenant_id, app_id=app_model.id)
         file_extra_config = FileUploadConfigManager.convert(workflow.features_dict, is_vision=False)
+        role = CreatedByRole.ACCOUNT if isinstance(user, Account) else CreatedByRole.END_USER
         if file_extra_config:
-            file_objs = message_file_parser.validate_and_transform_files_arg(files, file_extra_config, user)
+            file_objs = file_factory.build_from_mappings(
+                mappings=files,
+                tenant_id=app_model.tenant_id,
+                user_id=user.id,
+                role=role,
+                config=file_extra_config,
+            )
         else:
             file_objs = []
 
@@ -107,8 +114,9 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         app_config = AdvancedChatAppConfigManager.get_app_config(app_model=app_model, workflow=workflow)
 
         # get tracing instance
-        user_id = user.id if isinstance(user, Account) else user.session_id
-        trace_manager = TraceQueueManager(app_model.id, user_id)
+        trace_manager = TraceQueueManager(
+            app_id=app_model.id, user_id=user.id if isinstance(user, Account) else user.session_id
+        )
 
         if invoke_from == InvokeFrom.DEBUGGER:
             # always enable retriever resource in debugger mode
@@ -116,7 +124,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
 
         workflow_run_id = str(uuid.uuid4())
         # init application generate entity
-        current_inputs = self._get_cleaned_inputs(inputs, app_config)
+        current_inputs = self._prepare_user_inputs(user_inputs=inputs, app_config=app_config, user_id=user.id, role=role)
         application_generate_entity = AdvancedChatAppGenerateEntity(
             task_id=str(uuid.uuid4()),
             app_config=app_config,
@@ -359,27 +367,3 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             else:
                 logger.exception(e)
                 raise e
-
-    def get_message_history(self, app_id, conversation_id, workflow: Workflow):
-        message_history = []
-
-        # opening statement as first assistant message
-        features_dict = workflow.features_dict
-        if features_dict.get('opening_statement'):
-            message_history.append({'role': 'assistant', 'content': features_dict['opening_statement']})
-
-        db_conv = db.session.query(Conversation).filter(
-            Conversation.app_id == app_id,
-            Conversation.id == conversation_id
-        ).first()
-
-        if db_conv:
-            db_query = db.session.query(Message).filter(
-                Message.conversation_id == conversation_id,
-                Message.answer != ''
-            ).order_by(Message.created_at.asc())
-            history_messages = db_query.all()
-            for db_message in history_messages:
-                message_history.append({'role': 'user', 'content': db_message.query})
-                message_history.append({'role': 'assistant', 'content': db_message.answer})
-        return message_history

@@ -30,6 +30,10 @@ import ParameterExtractorNode from './parameter-extractor/node'
 import ParameterExtractorPanel from './parameter-extractor/panel'
 import IterationNode from './iteration/node'
 import IterationPanel from './iteration/panel'
+import DocExtractorNode from './document-extractor/node'
+import DocExtractorPanel from './document-extractor/panel'
+import ListFilterNode from './list-operator/node'
+import ListFilterPanel from './list-operator/panel'
 import CollectNode from './collect/node'
 import CollectPanel from './collect/panel'
 
@@ -50,6 +54,8 @@ export const NodeComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.VariableAggregator]: VariableAssignerNode,
   [BlockEnum.ParameterExtractor]: ParameterExtractorNode,
   [BlockEnum.Iteration]: IterationNode,
+  [BlockEnum.DocExtractor]: DocExtractorNode,
+  [BlockEnum.ListFilter]: ListFilterNode,
   [BlockEnum.Collect]: CollectNode,
 }
 
@@ -70,6 +76,8 @@ export const PanelComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.Assigner]: AssignerPanel,
   [BlockEnum.ParameterExtractor]: ParameterExtractorPanel,
   [BlockEnum.Iteration]: IterationPanel,
+  [BlockEnum.DocExtractor]: DocExtractorPanel,
+  [BlockEnum.ListFilter]: ListFilterPanel,
   [BlockEnum.Collect]: CollectPanel,
 }
 
