@@ -1,6 +1,7 @@
 from core.workflow.nodes.answer import AnswerNode
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.code import CodeNode
+from core.workflow.nodes.collect.collect_node import CollectNode
 from core.workflow.nodes.document_extractor import DocumentExtractorNode
 from core.workflow.nodes.end import EndNode
 from core.workflow.nodes.enums import NodeType
@@ -17,7 +18,6 @@ from core.workflow.nodes.template_transform import TemplateTransformNode
 from core.workflow.nodes.tool import ToolNode
 from core.workflow.nodes.variable_aggregator import VariableAggregatorNode
 from core.workflow.nodes.variable_assigner import VariableAssignerNode
-from core.workflow.nodes.collect.collect_node import CollectNode
 
 node_type_classes_mapping: dict[NodeType, type[BaseNode]] = {
     NodeType.START: StartNode,

@@ -131,7 +131,6 @@ class WorkflowEngineManager:
         if not isinstance(graph.get('edges'), list):
             raise ValueError('edges in workflow graph must be a list')
 
-
         workflow_call_max_depth = dify_config.WORKFLOW_CALL_MAX_DEPTH
         if call_depth > workflow_call_max_depth:
             raise ValueError('Max workflow call depth {} reached.'.format(workflow_call_max_depth))
@@ -447,7 +446,7 @@ class WorkflowEngineManager:
                     callbacks=callbacks
                 )
 
-                if next_node.node_type in [NodeType.END]:
+                if next_node.node_type == NodeType.END:
                     break
 
                 predecessor_node = next_node
@@ -997,7 +996,7 @@ class WorkflowEngineManager:
         if node.is_answer_previous_node and not isinstance(node, LLMNode):
             if not node_run_result.metadata:
                 node_run_result.metadata = {}
-            node_run_result.metadata["is_answer_previous_node"]=True
+            node_run_result.metadata["is_answer_previous_node"] = True
         workflow_nodes_and_result.result = node_run_result
 
         # node run success
@@ -1127,7 +1126,7 @@ class WorkflowEngineManager:
                     value = new_value
 
             # append variable and value to variable pool
-            variable_pool.add([variable_node_id]+variable_key_list, value)
+            variable_pool.add([variable_node_id] + variable_key_list, value)
 
     def _workflow_collect_started(self, *, graph: Mapping[str, Any],
                                   current_collect_node: CollectNode,

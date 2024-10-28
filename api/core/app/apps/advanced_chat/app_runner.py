@@ -23,7 +23,7 @@ from core.workflow.workflow_entry import WorkflowEntry
 from extensions.ext_database import db
 from models.enums import UserFrom
 from models.model import App, Conversation, EndUser, Message
-from models.workflow import ConversationVariable, WorkflowType, Workflow
+from models.workflow import ConversationVariable, Workflow, WorkflowType
 
 logger = logging.getLogger(__name__)
 

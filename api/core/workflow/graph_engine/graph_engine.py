@@ -1,3 +1,4 @@
+import json
 import logging
 import queue
 import time
@@ -5,7 +6,6 @@ import uuid
 from collections.abc import Generator, Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, Optional
-import json
 
 from flask import Flask, current_app
 
@@ -41,8 +41,9 @@ from core.workflow.nodes.end.end_stream_processor import EndStreamProcessor
 from core.workflow.nodes.event import RunCompletedEvent, RunRetrieverResourceEvent, RunStreamChunkEvent
 from core.workflow.nodes.node_mapping import node_type_classes_mapping
 from extensions.ext_database import db
+from factories import variable_factory
 from models.enums import UserFrom
-from models.workflow import WorkflowNodeExecutionStatus, WorkflowType, Workflow, WorkflowRunningCollect
+from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect, WorkflowType
 
 logger = logging.getLogger(__name__)
 
@@ -794,11 +795,11 @@ class GraphEngine:
                         current_var_dict[node] = dict()
                     value_type = var['value_type']
                     if 'array' in value_type:
-                        current_var_dict[node][var_hash] = factory.build_segment(var['value'])
+                        current_var_dict[node][var_hash] = variable_factory.build_segment(var['value'])
                     else:
                         if 'name' not in var:
                             var['name'] = 'anonymous'
-                        current_var_dict[node][var_hash] = factory.build_variable_from_mapping(var)
+                        current_var_dict[node][var_hash] = variable_factory.build_variable_from_mapping(var)
 
         return collect_node_id
 

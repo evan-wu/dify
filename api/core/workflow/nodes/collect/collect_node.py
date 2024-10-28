@@ -1,18 +1,19 @@
+import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from datetime import datetime, timezone
-import json
-from typing import Any, cast, Optional
+from typing import Any, Optional, cast
 
 from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.graph_engine.entities.event import (
     BaseGraphEvent,
     BaseNodeEvent,
     BaseParallelBranchEvent,
     GraphRunFailedEvent,
+    GraphRunSucceededEvent,
     InNodeEvent,
     IterationRunFailedEvent,
     IterationRunNextEvent,
@@ -20,20 +21,17 @@ from core.workflow.graph_engine.entities.event import (
     IterationRunSucceededEvent,
     NodeRunStreamChunkEvent,
     NodeRunSucceededEvent,
-    GraphRunSucceededEvent,
 )
 from core.workflow.graph_engine.entities.graph import Graph
-from core.workflow.nodes.base_node import BaseNode
+from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.collect.entities import CollectNodeData
-from core.workflow.nodes.event import RunCompletedEvent, RunEvent
+from core.workflow.nodes.enums import NodeType
+from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
 from core.workflow.nodes.if_else.entities import Condition
 from core.workflow.utils.variable_template_parser import VariableTemplateParser
 from extensions.ext_database import db
-from models.workflow import (
-    Workflow,
-    WorkflowNodeExecutionStatus,
-    WorkflowRunningCollect
-)
+from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +44,7 @@ class CollectNode(BaseNode):
     VAR_NAME_CURRENT_RUNS = '_current_runs_'
     VAR_NAME_IS_RESUMED_COLLECT = '_is_resumed_collect_'
 
-    def _run(self) -> Generator[RunEvent | InNodeEvent, None, None]:
+    def _run(self) -> Generator[NodeEvent | InNodeEvent, None, None]:
         """
         Run the node.
         """
@@ -113,8 +111,7 @@ class CollectNode(BaseNode):
         for event in rst:
             if isinstance(event, (BaseNodeEvent | BaseParallelBranchEvent)) and not event.in_iteration_id:
                 event.in_iteration_id = self.node_id
-            if isinstance(event, BaseNodeEvent):
-                print('********** ', event.node_type, event.model_dump())
+
             if (
                     isinstance(event, BaseNodeEvent)
                     and event.node_type == NodeType.ITERATION_START
