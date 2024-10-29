@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
@@ -27,9 +27,7 @@ from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.collect.entities import CollectNodeData
 from core.workflow.nodes.enums import NodeType
 from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
-from core.workflow.nodes.if_else.entities import Condition
 from core.workflow.utils.condition.processor import ConditionProcessor
-from core.workflow.utils.variable_template_parser import VariableTemplateParser
 from extensions.ext_database import db
 from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect
 
