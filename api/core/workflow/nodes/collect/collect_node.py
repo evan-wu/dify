@@ -164,7 +164,7 @@ class CollectNode(BaseNode):
         if self.check_collect_completed(variable_pool, current_runs, max_runs):
             collect_completed = True
             # set collect node level output
-            collect_node_output = variable_pool.get_any(
+            collect_node_output = variable_pool.get(
                 self.node_data.output_selector
             )
             variable_pool.add(
@@ -297,7 +297,7 @@ class CollectNode(BaseNode):
         group_result = []
 
         for condition in conditions:
-            actual_variable = variable_pool.get_any(condition.variable_selector)
+            actual_variable = variable_pool.get(condition.variable_selector)
 
             if condition.value is not None:
                 variable_template_parser = VariableTemplateParser(template=condition.value)
@@ -305,7 +305,7 @@ class CollectNode(BaseNode):
                 variable_selectors = variable_template_parser.extract_variable_selectors()
                 if variable_selectors:
                     for variable_selector in variable_selectors:
-                        value = variable_pool.get_any(variable_selector.value_selector)
+                        value = variable_pool.get(variable_selector.value_selector)
                         expected_value = variable_template_parser.format({variable_selector.variable: value})
                 else:
                     expected_value = condition.value
