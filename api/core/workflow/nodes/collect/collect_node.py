@@ -182,7 +182,7 @@ class CollectNode(BaseNode):
         # clear variables in current collect
         # remove all nodes outputs from variable pool
         for node_id in inner_graph.node_ids:
-            variable_pool.remove_node(node_id)
+            variable_pool.remove((node_id,))  # the input is (node_id, [var_name])
 
         yield IterationRunSucceededEvent(
             iteration_id=self.id,
