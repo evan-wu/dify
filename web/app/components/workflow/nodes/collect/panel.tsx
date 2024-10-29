@@ -43,7 +43,7 @@ const Panel: FC<NodePanelProps<CollectNodeType>> = ({
     handleOutputVarChange,
   } = useConfig(id, data)
 
-  const caseItem = {case_id: 'true', id: 'true',
+  const caseItem = {case_id: 'collect-exit-case-' + id,
     conditions: data.check_conditions, logical_operator: data.logical_operator || LogicalOperator.and} as CaseItem
   const { getIterationNodeChildren } = useWorkflow()
   const availableNodesAll = [...availableNodes, ...getIterationNodeChildren(id)]
@@ -68,7 +68,7 @@ const Panel: FC<NodePanelProps<CollectNodeType>> = ({
       { !!inputs.check_conditions?.length && (
         <div className='mb-2'>
           <ConditionList
-            nodeId={id}
+            caseId={caseItem.case_id}
             disabled={readOnly}
             caseItem={caseItem}
             onUpdateCondition={handleUpdateCondition}

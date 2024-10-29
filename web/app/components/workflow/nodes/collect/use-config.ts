@@ -115,9 +115,7 @@ const useConfig = (id: string, payload: CollectNodeType) => {
 
   const handleUpdateConditionLogicalOperator = useCallback<HandleToggleConditionLogicalOperator>((caseId) => {
     const newInputs = produce(inputs, (draft) => {
-      const targetCase = draft.cases?.find(item => item.case_id === caseId)
-      if (targetCase)
-        targetCase.logical_operator = targetCase.logical_operator === LogicalOperator.and ? LogicalOperator.or : LogicalOperator.and
+      draft.logical_operator = draft.logical_operator === LogicalOperator.and ? LogicalOperator.or : LogicalOperator.and
     })
     setInputs(newInputs)
   }, [inputs, setInputs])
