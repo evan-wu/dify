@@ -1,19 +1,19 @@
-import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from datetime import datetime, timezone
+import json
 from typing import Any, cast
 
 from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
 from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
+from core.workflow.nodes import NodeType
 from core.workflow.graph_engine.entities.event import (
     BaseGraphEvent,
     BaseNodeEvent,
     BaseParallelBranchEvent,
     GraphRunFailedEvent,
-    GraphRunSucceededEvent,
     InNodeEvent,
     IterationRunFailedEvent,
     IterationRunNextEvent,
@@ -21,16 +21,19 @@ from core.workflow.graph_engine.entities.event import (
     IterationRunSucceededEvent,
     NodeRunStreamChunkEvent,
     NodeRunSucceededEvent,
+    GraphRunSucceededEvent,
 )
 from core.workflow.graph_engine.entities.graph import Graph
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.collect.entities import CollectNodeData
-from core.workflow.nodes.enums import NodeType
-from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
+from core.workflow.nodes.event import RunCompletedEvent, NodeEvent
 from core.workflow.utils.condition.processor import ConditionProcessor
 from extensions.ext_database import db
-from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect
-
+from models.workflow import (
+    Workflow,
+    WorkflowNodeExecutionStatus,
+    WorkflowRunningCollect
+)
 logger = logging.getLogger(__name__)
 
 
