@@ -130,7 +130,8 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             app_config=app_config,
             conversation_id=conversation.id if conversation else None,
             # change inputs behavior, use current inputs if available
-            inputs=current_inputs or (conversation.inputs if conversation else {}),
+            inputs=current_inputs
+            if current_inputs else conversation.inputs if conversation else {},
             query=query,
             files=file_objs,
             parent_message_id=args.get("parent_message_id") if invoke_from != InvokeFrom.SERVICE_API else UUID_NIL,
@@ -142,6 +143,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             workflow_run_id=workflow_run_id,
         )
         contexts.tenant_id.set(application_generate_entity.app_config.tenant_id)
+        logging.info(f"Start generation from workflow: {app_model.name}")
 
         return self._generate(
             workflow=workflow,

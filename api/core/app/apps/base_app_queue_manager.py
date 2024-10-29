@@ -52,7 +52,7 @@ class AppQueueManager:
         last_ping_time = 0
         while True:
             try:
-                message = self._q.get(timeout=1)
+                message = self._q.get(timeout=0.1)
                 if message is None:
                     break
 
