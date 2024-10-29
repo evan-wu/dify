@@ -12,11 +12,11 @@ import useConfig from './use-config'
 import { type NodePanelProps } from '@/app/components/workflow/types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
 import BeforeRunForm from '@/app/components/workflow/nodes/_base/components/before-run-form'
-import ConditionAdd from "@/app/components/workflow/nodes/if-else/components/condition-add";
-import { useGetAvailableVars } from "@/app/components/workflow/nodes/variable-assigner/hooks";
-import ConditionList from "@/app/components/workflow/nodes/if-else/components/condition-list";
-import { CaseItem, LogicalOperator } from "@/app/components/workflow/nodes/if-else/types";
-import { useWorkflow } from "@/app/components/workflow/hooks";
+import ConditionAdd from "@/app/components/workflow/nodes/if-else/components/condition-add"
+import { useGetAvailableVars } from "@/app/components/workflow/nodes/variable-assigner/hooks"
+import ConditionList from "@/app/components/workflow/nodes/if-else/components/condition-list"
+import { CaseItem, LogicalOperator } from "@/app/components/workflow/nodes/if-else/types"
+import { useWorkflow } from "@/app/components/workflow/hooks"
 
 const i18nPrefix = 'workflow.nodes.collect'
 
@@ -68,14 +68,16 @@ const Panel: FC<NodePanelProps<CollectNodeType>> = ({
       { !!inputs.check_conditions?.length && (
         <div className='mb-2'>
           <ConditionList
+            nodeId={id}
             disabled={readOnly}
             caseItem={caseItem}
             onUpdateCondition={handleUpdateCondition}
             onRemoveCondition={handleRemoveCondition}
-            onUpdateConditionLogicalOperator={handleUpdateConditionLogicalOperator}
+            onToggleConditionLogicalOperator={handleUpdateConditionLogicalOperator}
             nodesOutputVars={nodesOutputVars}
             availableNodes={availableNodesAll}
             numberVariables={getAvailableVars(id, '', filterNumberVar)}
+            varsIsVarFileAttribute={{}}
           />
         </div>
         )

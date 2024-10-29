@@ -17,8 +17,8 @@ import type { VarType as VarKindType } from '@/app/components/workflow/nodes/too
 import useAvailableVarList from "@/app/components/workflow/nodes/_base/hooks/use-available-var-list";
 import {
   HandleAddCondition,
-  HandleRemoveCondition,
-  HandleUpdateCondition, HandleUpdateConditionLogicalOperator
+  HandleRemoveCondition, HandleToggleConditionLogicalOperator,
+  HandleUpdateCondition, LogicalOperator
 } from "@/app/components/workflow/nodes/if-else/types";
 import { v4 as uuid4 } from "uuid";
 import { getOperators } from "@/app/components/workflow/nodes/if-else/utils";
@@ -113,9 +113,11 @@ const useConfig = (id: string, payload: CollectNodeType) => {
   }, [inputs, setInputs])
 
 
-  const handleUpdateConditionLogicalOperator = useCallback<HandleUpdateConditionLogicalOperator>((caseId, value) => {
+  const handleUpdateConditionLogicalOperator = useCallback<HandleToggleConditionLogicalOperator>((caseId) => {
     const newInputs = produce(inputs, (draft) => {
-      draft.logical_operator = value
+      const targetCase = draft.cases?.find(item => item.case_id === caseId)
+      if (targetCase)
+        targetCase.logical_operator = targetCase.logical_operator === LogicalOperator.and ? LogicalOperator.or : LogicalOperator.and
     })
     setInputs(newInputs)
   }, [inputs, setInputs])

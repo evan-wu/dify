@@ -13,10 +13,10 @@ import { VarType as ToolVarType } from '../../../tool/types'
 import type { ToolNodeType } from '../../../tool/types'
 import type { ParameterExtractorNodeType } from '../../../parameter-extractor/types'
 import type { IterationNodeType } from '../../../iteration/types'
-import type { CollectNodeType } from "../../../collect/types"
 import type { ListFilterNodeType } from '../../../list-operator/types'
 import { OUTPUT_FILE_SUB_VARIABLES } from '../../../if-else/default'
 import type { DocExtractorNodeType } from '../../../document-extractor/types'
+import type { CollectNodeType } from "../../../collect/types"
 import { BlockEnum, InputVarType, VarType } from '@/app/components/workflow/types'
 import type { StartNodeType } from '@/app/components/workflow/nodes/start/types'
 import type { ConversationVariable, EnvironmentVariable, Node, NodeOutPutVar, ValueSelector, Var } from '@/app/components/workflow/types'
@@ -105,12 +105,12 @@ const formatItem = (
           type: VarType.string,
         })
         res.vars.push({
-          variable: 'sys.message_history',
-          type: VarType.arrayObject,
-        })
-        res.vars.push({
           variable: 'sys.dialogue_count',
           type: VarType.number,
+        })
+        res.vars.push({
+          variable: 'sys.message_history',
+          type: VarType.arrayObject,
         })
         res.vars.push({
           variable: 'sys.conversation_id',
@@ -267,16 +267,6 @@ const formatItem = (
       break
     }
 
-    case BlockEnum.Collect: {
-      res.vars = [
-        {
-          variable: 'output',
-          type: (data as CollectNodeType).output_type,
-        },
-      ]
-      break
-    }
-
     case BlockEnum.DocExtractor: {
       res.vars = [
         {
@@ -303,6 +293,16 @@ const formatItem = (
         {
           variable: 'last_record',
           type: (data as ListFilterNodeType).item_var_type,
+        },
+      ]
+      break
+    }
+
+    case BlockEnum.Collect: {
+      res.vars = [
+        {
+          variable: 'output',
+          type: (data as CollectNodeType).output_type,
         },
       ]
       break
@@ -596,9 +596,7 @@ export const toNodeAvailableVars = ({
         },
       ],
     }
-    if (filterVar(runsCountVar.vars[0], [])) {
-      beforeNodesOutputVars.unshift(<NodeOutPutVar>runsCountVar)
-    }
+    beforeNodesOutputVars.unshift(<NodeOutPutVar>runsCountVar)
   }
   const isInIteration = parentNode?.data.type === BlockEnum.Iteration
   if (isInIteration) {
@@ -1039,18 +1037,6 @@ export const updateNodeVars = (oldNode: Node, oldVarSelector: ValueSelector, new
           payload.variable = newVarSelector
         break
       }
-
-      case BlockEnum.Collect: {
-        const payload = data as CollectNodeType
-        if (payload.check_conditions) {
-          payload.check_conditions = payload.check_conditions.map((c) => {
-            if (c.variable_selector.join('.') === oldVarSelector.join('.'))
-              c.variable_selector = newVarSelector
-            return c
-          })
-        }
-        break
-      }
     }
   })
   return newNode
@@ -1162,11 +1148,6 @@ export const getNodeOutputVars = (node: Node, isChatMode: boolean): ValueSelecto
     }
 
     case BlockEnum.Iteration: {
-      res.push([id, 'output'])
-      break
-    }
-
-    case BlockEnum.Collect: {
       res.push([id, 'output'])
       break
     }
