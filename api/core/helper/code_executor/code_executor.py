@@ -95,6 +95,8 @@ class CodeExecutor:
         except CodeExecutionError as e:
             raise e
         except Exception as e:
+            logger.error(f"Failed to execute code: {code}")
+            logger.exception(e)
             raise CodeExecutionError(
                 "Failed to execute code, which is likely a network issue,"
                 " please check if the sandbox service is running."
