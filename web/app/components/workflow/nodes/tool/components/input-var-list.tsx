@@ -46,6 +46,8 @@ const InputVarList: FC<Props> = ({
   const paramType = (type: string) => {
     if (type === FormTypeEnum.textNumber)
       return 'Number'
+    else if (type === FormTypeEnum.file)
+      return 'File'
     else if (type === FormTypeEnum.files)
       return 'Files'
     else if (type === FormTypeEnum.select)
@@ -72,7 +74,7 @@ const InputVarList: FC<Props> = ({
         }
         else {
           draft[variable] = {
-            type: varKindType,
+            type: VarKindType.variable,
             value: varValue,
           }
         }
@@ -171,7 +173,7 @@ const InputVarList: FC<Props> = ({
                   value={varInput?.type === VarKindType.constant ? (varInput?.value || '') : (varInput?.value || [])}
                   onChange={handleNotMixedTypeChange(variable)}
                   onOpen={handleOpen(index)}
-                  defaultVarKindType={varInput?.type}
+                  defaultVarKindType={VarKindType.variable}
                   filterVar={isNumber ? filterVar : undefined}
                   availableVars={isSelect ? availableVars : undefined}
                   schema={schema}

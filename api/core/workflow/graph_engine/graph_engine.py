@@ -5,6 +5,7 @@ import time
 import uuid
 from collections.abc import Generator, Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
+from copy import copy, deepcopy
 from typing import Any, Optional
 
 from flask import Flask, current_app
@@ -133,15 +134,14 @@ class GraphEngine:
         yield GraphRunStartedEvent()
 
         try:
-            stream_processor_cls: type[AnswerStreamProcessor | EndStreamProcessor]
             if self.init_params.workflow_type == WorkflowType.CHAT:
-                stream_processor_cls = AnswerStreamProcessor
+                stream_processor = AnswerStreamProcessor(
+                    graph=self.graph, variable_pool=self.graph_runtime_state.variable_pool
+                )
             else:
-                stream_processor_cls = EndStreamProcessor
-
-            stream_processor = stream_processor_cls(
-                graph=self.graph, variable_pool=self.graph_runtime_state.variable_pool
-            )
+                stream_processor = EndStreamProcessor(
+                    graph=self.graph, variable_pool=self.graph_runtime_state.variable_pool
+                )
 
             # run graph
 
@@ -196,7 +196,7 @@ class GraphEngine:
                                 "answer"
                             ].strip()
                 except Exception as e:
-                    logger.exception(f"Graph run failed: {str(e)}")
+                    logger.exception("Graph run failed")
                     yield GraphRunFailedEvent(error=str(e))
                     return
 
@@ -730,7 +730,7 @@ class GraphEngine:
             )
             return
         except Exception as e:
-            logger.exception(f"Node {node_instance.node_data.title} run failed: {str(e)}")
+            logger.exception(f"Node {node_instance.node_data.title} run failed")
             raise e
         finally:
             db.session.close()
@@ -762,6 +762,16 @@ class GraphEngine:
         :return:
         """
         return time.perf_counter() - start_at > max_execution_time
+
+    def create_copy(self):
+        """
+        create a graph engine copy
+        :return: with a new variable pool instance of graph engine
+        """
+        new_instance = copy(self)
+        new_instance.graph_runtime_state = copy(self.graph_runtime_state)
+        new_instance.graph_runtime_state.variable_pool = deepcopy(self.graph_runtime_state.variable_pool)
+        return new_instance
 
     def _load_workflow_running_collect(self, workflow: Workflow, workflow_run_state: GraphRuntimeState) -> Optional[str]:
         conversation_id = workflow_run_state.variable_pool.get(('sys', 'conversation_id'))
