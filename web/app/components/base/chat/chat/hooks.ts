@@ -437,7 +437,8 @@ export const useChat = (
           const newChatList = produce(chatListRef.current, (draft) => {
             draft.splice(draft.findIndex(item => item.id === placeholderAnswerId), 1)
           })
-          handleUpdateChatList(newChatList)
+          // Evan: keeping the generated output
+          // handleUpdateChatList(newChatList)
         },
         onWorkflowStarted: ({ workflow_run_id, task_id }) => {
           taskIdRef.current = task_id

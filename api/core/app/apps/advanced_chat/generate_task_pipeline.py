@@ -401,6 +401,10 @@ class AdvancedChatAppGenerateTaskPipeline(BasedGenerateTaskPipeline, WorkflowCyc
                     trace_manager=trace_manager,
                 )
 
+                # Save message if there is partial result
+                if self._task_state and self._task_state.answer:
+                    self._save_message(graph_runtime_state=graph_runtime_state)
+
                 yield self._workflow_finish_to_stream_response(
                     task_id=self._application_generate_entity.task_id, workflow_run=workflow_run
                 )
