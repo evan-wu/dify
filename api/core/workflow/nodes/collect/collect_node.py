@@ -1,19 +1,19 @@
+import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
-from datetime import datetime, timezone
-import json
+from datetime import UTC, datetime
 from typing import Any, cast
 
 from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
 from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
-from core.workflow.nodes import NodeType
 from core.workflow.graph_engine.entities.event import (
     BaseGraphEvent,
     BaseNodeEvent,
     BaseParallelBranchEvent,
     GraphRunFailedEvent,
+    GraphRunSucceededEvent,
     InNodeEvent,
     IterationRunFailedEvent,
     IterationRunNextEvent,
@@ -21,19 +21,16 @@ from core.workflow.graph_engine.entities.event import (
     IterationRunSucceededEvent,
     NodeRunStreamChunkEvent,
     NodeRunSucceededEvent,
-    GraphRunSucceededEvent,
 )
 from core.workflow.graph_engine.entities.graph import Graph
+from core.workflow.nodes import NodeType
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.collect.entities import CollectNodeData
-from core.workflow.nodes.event import RunCompletedEvent, NodeEvent
+from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
 from core.workflow.utils.condition.processor import ConditionProcessor
 from extensions.ext_database import db
-from models.workflow import (
-    Workflow,
-    WorkflowNodeExecutionStatus,
-    WorkflowRunningCollect
-)
+from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +47,7 @@ class CollectNode(BaseNode):
         """
         Run the node.
         """
-        start_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_at = datetime.now(UTC).replace(tzinfo=None)
 
         self.node_data = cast(CollectNodeData, self.node_data)
         variable_pool = self.graph_runtime_state.variable_pool
@@ -170,10 +167,12 @@ class CollectNode(BaseNode):
             collect_node_output = variable_pool.get(
                 self.node_data.output_selector
             )
-            variable_pool.add(
-                (self.node_id, 'output'),
-                collect_node_output
-            )
+            if collect_node_output:
+                collect_node_output = collect_node_output.value
+                variable_pool.add(
+                    (self.node_id, 'output'),
+                    collect_node_output
+                )
 
             # delete the saved collect state
             if is_resumed_collect:
@@ -260,14 +259,14 @@ class CollectNode(BaseNode):
                 created_from=self.invoke_from.value,
                 created_by=self.user_id,
                 variable_dict=variable_dict_str,
-                created_at=datetime.now(timezone.utc).replace(tzinfo=None)
+                created_at=datetime.now(UTC).replace(tzinfo=None)
             )
             db.session.add(running_collect)
         else:
             running_collect.collect_node_id = collect_node_id
             running_collect.current_runs = current_runs
             running_collect.variable_dict = variable_dict_str
-            running_collect.updated_at = workflow.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            running_collect.updated_at = workflow.updated_at = datetime.now(UTC).replace(tzinfo=None)
 
         db.session.commit()
 
