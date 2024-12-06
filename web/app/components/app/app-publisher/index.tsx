@@ -206,7 +206,7 @@ const AppPublisher = ({
                 </SuggestedAction>
               )}
             <SuggestedAction disabled={!publishedAt} link='./develop' icon={<FileText className='w-4 h-4' />}>{t('workflow.common.accessAPIReference')}</SuggestedAction>
-            {appDetail?.mode === 'workflow' && (
+            {(appDetail?.mode === 'workflow' || appDetail?.mode === 'advanced-chat') && (
               <WorkflowToolConfigureButton
                 disabled={!publishedAt}
                 published={!!toolPublished}
