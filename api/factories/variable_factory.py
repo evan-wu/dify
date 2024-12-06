@@ -36,6 +36,7 @@ from core.variables.variables import (
     StringVariable,
     Variable,
 )
+from core.workflow.constants import CONVERSATION_VARIABLE_NODE_ID, ENVIRONMENT_VARIABLE_NODE_ID
 
 
 class InvalidSelectorError(ValueError):
@@ -62,7 +63,23 @@ SEGMENT_TO_VARIABLE_MAP = {
 }
 
 
-def build_variable_from_mapping(mapping: Mapping[str, Any], /) -> Variable:
+def build_conversation_variable_from_mapping(mapping: Mapping[str, Any], /) -> Variable:
+    if not mapping.get("name"):
+        raise VariableError("missing name")
+    return _build_variable_from_mapping(mapping=mapping, selector=[CONVERSATION_VARIABLE_NODE_ID, mapping["name"]])
+
+
+def build_environment_variable_from_mapping(mapping: Mapping[str, Any], /) -> Variable:
+    if not mapping.get("name"):
+        raise VariableError("missing name")
+    return _build_variable_from_mapping(mapping=mapping, selector=[ENVIRONMENT_VARIABLE_NODE_ID, mapping["name"]])
+
+
+def _build_variable_from_mapping(*, mapping: Mapping[str, Any], selector: Sequence[str]) -> Variable:
+    """
+    This factory function is used to create the environment variable or the conversation variable,
+    not support the File type.
+    """
     if (value_type := mapping.get("value_type")) is None:
         raise VariableError("missing value type")
     if not mapping.get("name"):
@@ -92,6 +109,8 @@ def build_variable_from_mapping(mapping: Mapping[str, Any], /) -> Variable:
             raise VariableError(f"not supported value type {value_type}")
     if result.size > dify_config.MAX_VARIABLE_SIZE:
         raise VariableError(f"variable size {result.size} exceeds limit {dify_config.MAX_VARIABLE_SIZE}")
+    if not result.selector:
+        result = result.model_copy(update={"selector": selector})
     return result
 
 

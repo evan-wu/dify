@@ -154,7 +154,7 @@ class AnswerStreamGeneratorRouter:
                 NodeType.QUESTION_CLASSIFIER,
                 NodeType.ITERATION,
                 NodeType.COLLECT,
-                NodeType.CONVERSATION_VARIABLE_ASSIGNER,
+                NodeType.VARIABLE_ASSIGNER,
             }:
                 answer_dependencies[answer_node_id].append(source_node_id)
             else:

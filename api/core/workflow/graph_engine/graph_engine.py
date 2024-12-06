@@ -40,7 +40,7 @@ from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.collect.collect_node import CollectNode
 from core.workflow.nodes.end.end_stream_processor import EndStreamProcessor
 from core.workflow.nodes.event import RunCompletedEvent, RunRetrieverResourceEvent, RunStreamChunkEvent
-from core.workflow.nodes.node_mapping import node_type_classes_mapping
+from core.workflow.nodes.node_mapping import NODE_TYPE_CLASSES_MAPPING
 from extensions.ext_database import db
 from factories import variable_factory
 from models.enums import UserFrom
@@ -67,7 +67,6 @@ class GraphEngineThreadPool(ThreadPoolExecutor):
         self.submit_count -= 1
 
     def check_is_full(self) -> None:
-        print(f"submit_count: {self.submit_count}, max_submit_count: {self.max_submit_count}")
         if self.submit_count > self.max_submit_count:
             raise ValueError(f"Max submit count {self.max_submit_count} of workflow thread pool reached.")
 
@@ -252,7 +251,8 @@ class GraphEngine:
 
             # convert to specific node
             node_type = NodeType(node_config.get("data", {}).get("type"))
-            node_cls = node_type_classes_mapping.get(node_type)
+            node_version = node_config.get("data", {}).get("version", "1")
+            node_cls = NODE_TYPE_CLASSES_MAPPING[node_type][node_version]
             if not node_cls:
                 raise GraphRunFailedError(f"Node {node_id} type {node_type} not found.")
 
@@ -810,7 +810,7 @@ class GraphEngine:
                         if 'name' not in var:
                             var['name'] = 'anonymous'
                         if var.get('value'):
-                            current_var_dict[node][var_hash] = variable_factory.build_variable_from_mapping(var)
+                            current_var_dict[node][var_hash] = variable_factory._build_variable_from_mapping(var)
 
         return collect_node_id
 

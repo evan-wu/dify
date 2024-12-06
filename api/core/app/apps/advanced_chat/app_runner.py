@@ -39,12 +39,14 @@ class AdvancedChatAppRunner(WorkflowBasedAppRunner):
         queue_manager: AppQueueManager,
         conversation: Conversation,
         message: Message,
+        dialogue_count: int,
     ) -> None:
         super().__init__(queue_manager)
 
         self.application_generate_entity = application_generate_entity
         self.conversation = conversation
         self.message = message
+        self._dialogue_count = dialogue_count
 
     def run(self) -> None:
         app_config = self.application_generate_entity.app_config
@@ -122,12 +124,6 @@ class AdvancedChatAppRunner(WorkflowBasedAppRunner):
 
                 session.commit()
 
-            # Increment dialogue count.
-            self.conversation.dialogue_count += 1
-
-            conversation_dialogue_count = self.conversation.dialogue_count
-            db.session.commit()
-
             # Create a variable pool.
             system_inputs = {
                 SystemVariableKey.QUERY: query,
@@ -138,7 +134,7 @@ class AdvancedChatAppRunner(WorkflowBasedAppRunner):
                                                                             self.conversation,
                                                                             app_config.workflow_id,
                                                                             self.conversation.dialogue_count == 1),
-                SystemVariableKey.DIALOGUE_COUNT: conversation_dialogue_count,
+                SystemVariableKey.DIALOGUE_COUNT: self._dialogue_count,
                 SystemVariableKey.APP_ID: app_config.app_id,
                 SystemVariableKey.WORKFLOW_ID: app_config.workflow_id,
                 SystemVariableKey.WORKFLOW_RUN_ID: self.application_generate_entity.workflow_run_id,
