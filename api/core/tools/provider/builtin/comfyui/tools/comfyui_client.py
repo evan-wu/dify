@@ -47,7 +47,11 @@ class ComfyUiClient:
     def set_prompt_by_ksampler(self, origin_prompt: dict, positive_prompt: str, negative_prompt: str = "") -> dict:
         prompt = origin_prompt.copy()
         id_to_class_type = {id: details["class_type"] for id, details in prompt.items()}
-        k_sampler = [key for key, value in id_to_class_type.items() if value == "KSampler"][0]
+        k_samplers = [key for key, value in id_to_class_type.items() if value == "KSampler"]
+        if not k_samplers:
+            return prompt
+        else:
+            k_sampler = k_samplers[0]
         positive_input_id = prompt.get(k_sampler)["inputs"]["positive"][0]
         prompt.get(positive_input_id)["inputs"]["text"] = positive_prompt
 
