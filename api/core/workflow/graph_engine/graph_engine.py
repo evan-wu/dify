@@ -810,7 +810,7 @@ class GraphEngine:
                         if 'name' not in var:
                             var['name'] = 'anonymous'
                         if var.get('value'):
-                            current_var_dict[node][var_hash] = variable_factory._build_variable_from_mapping(var)
+                            current_var_dict[node][var_hash] = variable_factory._build_variable_from_mapping(mapping=var, selector=[node, var_hash])
 
         return collect_node_id
 
