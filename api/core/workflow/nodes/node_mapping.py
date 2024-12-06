@@ -84,7 +84,7 @@ NODE_TYPE_CLASSES_MAPPING: Mapping[NodeType, Mapping[str, type[BaseNode]]] = {
     NodeType.COLLECT: {
         LATEST_VERSION: IterationNode,
         "1": IterationNode,
-    }
+    },
     NodeType.ITERATION_START: {
         LATEST_VERSION: IterationStartNode,
         "1": IterationStartNode,
