@@ -97,6 +97,7 @@ const WorkflowToolAsModal: FC<Props> = ({
         name: item.name,
         description: item.description,
         form: item.form,
+        type: item.type,
       })),
       labels,
       privacy_policy: privacyPolicy,
