@@ -57,6 +57,31 @@ const Header: FC = () => {
   const fileSettings = useFeatures(s => s.features.file)
   const variables = useMemo(() => {
     const data = startVariables || []
+    if (isChatMode) {
+      return [
+        ...data,
+        {
+          type: InputVarType.paragraph,
+          variable: 'sys.query',
+          required: false,
+          label: 'sys.query',
+        },
+        {
+          type: InputVarType.paragraph,
+          variable: 'sys.conversation_id',
+          required: false,
+          label: 'sys.conversation_id',
+        },
+        // user_id is auto added to tool invoke params
+        {
+          type: InputVarType.files,  // 'files' is a independent param in tool invoke method
+          variable: 'sys.files',
+          required: false,
+          label: 'files',
+        },
+      ]
+    }
+
     if (fileSettings?.image?.enabled) {
       return [
         ...data,
