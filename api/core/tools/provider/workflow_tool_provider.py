@@ -118,20 +118,25 @@ class WorkflowToolProviderController(ToolProviderController):
                         options=options,
                     )
                 )
-            elif features.file_upload:
+            # elif features.file_upload:
+            else:
                 workflow_tool_parameters.append(
                     ToolParameter(
                         name=parameter.name,
                         label=I18nObject(en_US=parameter.name, zh_Hans=parameter.name),
                         human_description=I18nObject(en_US=parameter.description, zh_Hans=parameter.description),
-                        type=ToolParameter.ToolParameterType.SYSTEM_FILES,
+                        type=ToolParameter.ToolParameterType.FILES if parameter.type == 'files' else 
+                            ToolParameter.ToolParameterType.FILE if parameter.type == 'file' else 
+                            ToolParameter.ToolParameterType.NUMBER if parameter.type == 'number' else 
+                            ToolParameter.ToolParameterType.BOOLEAN if parameter.type == 'boolean' else 
+                            ToolParameter.ToolParameterType.STRING,
                         llm_description=parameter.description,
                         required=False,
                         form=parameter.form,
                     )
                 )
-            else:
-                raise ValueError("variable not found")
+            # else:
+            #    raise ValueError("variable not found")
 
         return WorkflowTool(
             identity=ToolIdentity(
