@@ -290,6 +290,28 @@ class ToolConversationVariables(db.Model):
         return json.loads(self.variables_str)
 
 
+class ChatflowToolConversations(db.Model):
+    """
+    mapping app conversation_id to chatflow (as tool) conversation_id
+    """
+
+    __tablename__ = "chatflow_tool_conversations"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="chatflow_tool_conversations_pkey"),
+        # add index for app_conversation_id and chatflow_id
+        db.Index("app_conversation_id_idx", "app_conversation_id", "chatflow_id"),
+    )
+
+    id = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    # app_conversation_id
+    app_conversation_id = db.Column(StringUUID, nullable=False)
+    # chatflow_id
+    chatflow_id = db.Column(StringUUID, nullable=False)
+    # chatflow as tool conversation id
+    chatflow_conversation_id = db.Column(StringUUID, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text("CURRENT_TIMESTAMP(0)"))
+
+
 class ToolFile(db.Model):
     __tablename__ = "tool_files"
     __table_args__ = (
