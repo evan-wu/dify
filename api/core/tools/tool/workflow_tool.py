@@ -1,6 +1,7 @@
 import json
 import logging
 from copy import deepcopy
+from datetime import UTC, datetime
 from typing import Any, Optional, Union
 
 from core.file import FILE_MODEL_IDENTITY, File, FileTransferMethod
@@ -9,6 +10,7 @@ from core.tools.tool.tool import Tool
 from extensions.ext_database import db
 from models.account import Account
 from models.model import App, EndUser
+from models.tools import ChatflowToolConversations
 from models.workflow import Workflow
 
 logger = logging.getLogger(__name__)
@@ -47,23 +49,82 @@ class WorkflowTool(Tool):
         # transform the tool parameters
         tool_parameters, files = self._transform_args(tool_parameters=tool_parameters)
 
+        from core.app.apps.advanced_chat.app_generator import AdvancedChatAppGenerator
         from core.app.apps.workflow.app_generator import WorkflowAppGenerator
 
-        generator = WorkflowAppGenerator()
         assert self.runtime is not None
         assert self.runtime.invoke_from is not None
-        result = generator.generate(
-            app_model=app,
-            workflow=workflow,
-            user=self._get_user(user_id),
-            args={"inputs": tool_parameters, "files": files},
-            invoke_from=self.runtime.invoke_from,
-            streaming=False,
-            call_depth=self.workflow_call_depth + 1,
-            workflow_thread_pool_id=self.thread_pool_id,
-        )
-        assert isinstance(result, dict)
-        data = result.get("data", {})
+
+        if workflow.type == 'chat':
+            # separate tool_parameters into self-defined parameter (inputs) and sys parameters (sys.xxx)
+            user_params = dict()
+            sys_query = None
+            sys_conversation_id = None
+            chatflow_conversation_id = None
+            for name, val in tool_parameters.items():
+                if name == 'sys.query':  # sys.xxx set in web/app/components/workflow/header/index.tsx
+                    sys_query = val
+                elif name == 'sys.conversation_id':
+                    sys_conversation_id = val
+                else:
+                    user_params[name] = val
+
+            if sys_conversation_id:
+                chatflow_conv_mapping = db.session.query(ChatflowToolConversations).filter(
+                    ChatflowToolConversations.app_conversation_id == sys_conversation_id,
+                    ChatflowToolConversations.chatflow_id == workflow.id
+                ).first()
+                if chatflow_conv_mapping:
+                    chatflow_conversation_id = chatflow_conv_mapping.chatflow_conversation_id
+
+            generator = AdvancedChatAppGenerator()
+            result = generator.generate(
+                app_model=app,
+                workflow=workflow,
+                user=self._get_user(user_id),
+                invoke_from=self.runtime.invoke_from,
+                streaming=False,
+                args={
+                    "query": sys_query,
+                    "conversation_id": chatflow_conversation_id or None,
+                    "files": files,
+                    "auto_generate_name": False,
+                    "inputs": user_params,
+                }
+            )
+            assert isinstance(result, dict)
+            if not chatflow_conversation_id:
+                chatflow_conversation_id = result['conversation_id']
+                new_state = ChatflowToolConversations(
+                    app_conversation_id=sys_conversation_id,
+                    chatflow_id=workflow.id,
+                    chatflow_conversation_id=chatflow_conversation_id,
+                    created_at=datetime.now(UTC).replace(tzinfo=None)
+                )
+                db.session.add(new_state)
+                db.session.commit()
+            outputs = {}
+            if 'answer' in result:
+                outputs['answer'] = result['answer']
+            if 'files' in result:
+                outputs['files'] = result['files']
+            data = {
+                "outputs": outputs
+            }
+        else:
+            generator = WorkflowAppGenerator()
+            result = generator.generate(
+                app_model=app,
+                workflow=workflow,
+                user=self._get_user(user_id),
+                args={"inputs": tool_parameters, "files": files},
+                invoke_from=self.runtime.invoke_from,
+                streaming=False,
+                call_depth=self.workflow_call_depth + 1,
+                workflow_thread_pool_id=self.thread_pool_id,
+            )
+            assert isinstance(result, dict)
+            data = result.get("data", {})
 
         if data.get("error"):
             raise Exception(data.get("error"))
@@ -156,7 +217,7 @@ class WorkflowTool(Tool):
         parameters_result = {}
         files = []
         for parameter in parameter_rules:
-            if parameter.type == ToolParameter.ToolParameterType.SYSTEM_FILES:
+            if parameter.type == ToolParameter.ToolParameterType.FILES:
                 file = tool_parameters.get(parameter.name)
                 if file:
                     try:
