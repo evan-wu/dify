@@ -470,7 +470,7 @@ class WorkflowToolParameterConfiguration(BaseModel):
     name: str = Field(..., description="The name of the parameter")
     description: str = Field(..., description="The description of the parameter")
     form: ToolParameter.ToolParameterForm = Field(..., description="The form of the parameter")
-    type: str = Field(..., description="The type of the parameter")
+    type: Optional[str] = None  # "The type of the parameter"
 
 
 class ToolInvokeMeta(BaseModel):
