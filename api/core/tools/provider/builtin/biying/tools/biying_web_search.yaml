@@ -1,0 +1,40 @@
+identity:
+  name: biying_web_search
+  author: LJX
+  label:
+    en_US: BingWebSearch
+    zh_Hans: 必应中国搜索
+    pt_BR: BingWebSearch
+description:
+  human:
+    en_US: A tool for performing a Bing SERP search and extracting snippets and webpages.Input should be a search query.
+    zh_Hans: 一个用于执行 Bing SERP 搜索并提取片段和网页的工具。输入应该是一个搜索查询。输出是一个dict, 包含一个key：urls, value是一个list, 包含搜索结果的url。
+    pt_BR: A tool for performing a Bing SERP search and extracting snippets and webpages.Input should be a search query.
+  llm: A tool for performing a Bing SERP search and extracting snippets and webpages.Input should be a search query.
+parameters:
+  - name: query
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Query string
+      zh_Hans: 查询语句
+      pt_BR: Query string
+    human_description:
+      en_US: used for searching
+      zh_Hans: 用于搜索网页内容
+      pt_BR: used for searching
+    llm_description: key words for searching
+  - name: num_results
+    type: number
+    required: true
+    min: 1
+    max: 40
+    label:
+      en_US: Number of results
+      zh_Hans: 搜索返回URL数量
+    human_description:
+      en_US: used for selecting the number of results
+      zh_Hans: 用于选择搜索返回的URL数量
+    form: llm
+

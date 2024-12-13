@@ -1,0 +1,12 @@
+identity:
+  author: LJX
+  name: biying
+  label:
+    en_US: Biying
+    zh_Hans: 必应中国
+    pt_BR: Biying
+  description:
+    en_US: Bing Search
+    zh_Hans: Bing 搜索
+    pt_BR: Bing Search
+  icon: icon.svg
