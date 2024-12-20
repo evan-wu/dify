@@ -33,7 +33,7 @@ export const getInputVars = (text: string): ValueSelector[] => {
   if (!text)
     return []
 
-  const allVars = text.match(/{{#([^#]*)#}}/g)
+  const allVars = ("" + text).match(/{{#([^#]*)#}}/g)
   if (allVars && allVars?.length > 0) {
     // {{#context#}}, {{#query#}} is not input vars
     const inputVars = allVars
