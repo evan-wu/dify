@@ -1,3 +1,4 @@
+import base64
 from typing import Any
 
 from core.tools.entities.tool_entities import ToolInvokeMessage
@@ -36,4 +37,13 @@ class ScrapeTool(BuiltinTool):
 
         crawl_result = app.scrape_url(url=tool_parameters["url"], **payload)
         markdown_result = crawl_result.get("data", {}).get("markdown", "")
-        return [self.create_text_message(markdown_result), self.create_json_message(crawl_result)]
+        screenshot = crawl_result.get("data", {}).get("screenshot", "")
+        screenshot_file = None
+        if screenshot:
+            if screenshot.startswith('data:image/png;base64,'):
+                screenshot = screenshot[len('data:image/png;base64,'):]
+            screenshot_file = self.create_blob_message(
+                blob=base64.b64decode(screenshot.encode()), meta={"mime_type": "image/png"},
+                save_as=self.VariableKey.IMAGE.value
+            )
+        return [self.create_text_message(markdown_result), self.create_json_message(crawl_result), screenshot_file]
