@@ -308,6 +308,39 @@ class CodeNode(BaseNode[CodeNodeData]):
                         )
                         for i, value in enumerate(result[output_name])
                     ]
+            elif output_config.type == "array[file]":
+                # check if array of object available
+                if not isinstance(result[output_name], list):
+                    if isinstance(result[output_name], type(None)):
+                        transformed_result[output_name] = None
+                    else:
+                        raise OutputValidationError(
+                            f"Output {prefix}{dot}{output_name} is not an array,"
+                            f" got {type(result.get(output_name))} instead."
+                        )
+                else:
+                    if len(result[output_name]) > dify_config.CODE_MAX_OBJECT_ARRAY_LENGTH:
+                        raise OutputValidationError(
+                            f"The length of output variable `{prefix}{dot}{output_name}` must be"
+                            f" less than {dify_config.CODE_MAX_OBJECT_ARRAY_LENGTH} elements."
+                        )
+
+                    for i, value in enumerate(result[output_name]):
+                        if not isinstance(value, dict):
+                            if value is None:
+                                pass
+                            else:
+                                raise OutputValidationError(
+                                    f"Output {prefix}{dot}{output_name}[{i}] is not an object,"
+                                    f" got {type(value)} instead at index {i}."
+                                )
+
+                    transformed_result[output_name] = [
+                        None
+                        if value is None
+                        else File.model_validate(value)
+                        for i, value in enumerate(result[output_name])
+                    ]
             else:
                 raise OutputValidationError(f"Output type {output_config.type} is not supported.")
 
