@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Optional, Union
 
 from configs import dify_config
+from core.file.models import File
 from core.helper.code_executor.code_executor import CodeExecutionError, CodeExecutor, CodeLanguage
 from core.helper.code_executor.code_node_provider import CodeNodeProvider
 from core.helper.code_executor.javascript.javascript_code_provider import JavascriptCodeProvider
@@ -49,7 +50,10 @@ class CodeNode(BaseNode[CodeNodeData]):
         for variable_selector in self.node_data.variables:
             variable_name = variable_selector.variable
             variable = self.graph_runtime_state.variable_pool.get(variable_selector.value_selector)
-            variables[variable_name] = variable.to_object() if variable else None
+            value = variable.to_object() if variable else None
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], File):
+                value = [file_var.to_dict() for file_var in value]
+            variables[variable_name] = value
         # Run code
         try:
             result = CodeExecutor.execute_workflow_code_template(
