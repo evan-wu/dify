@@ -47,7 +47,7 @@ const EditBody: FC<Props> = ({
 }) => {
   const { type, data } = payload
   const bodyPayload = useMemo(() => {
-    if (typeof data === 'string') { // old data
+    if (typeof data === 'string' || data === undefined) { // old data
       return []
     }
     return data

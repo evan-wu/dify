@@ -147,7 +147,7 @@ const useConfig = (id: string, payload: HttpNodeType) => {
     inputs.url,
     inputs.headers,
     inputs.params,
-    typeof inputs.body.data === 'string' ? inputs.body.data : inputs.body.data.map(item => item.value).join(''),
+    typeof inputs.body.data === 'string' ? inputs.body.data : inputs.body.data?.map(item => item.value).join(''),
     fileVarInputs,
   ])
 
