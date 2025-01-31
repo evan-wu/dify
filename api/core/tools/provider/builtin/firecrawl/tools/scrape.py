@@ -38,7 +38,6 @@ class ScrapeTool(BuiltinTool):
         crawl_result = app.scrape_url(url=tool_parameters["url"], **payload)
         markdown_result = crawl_result.get("data", {}).get("markdown", "")
         screenshot = crawl_result.get("data", {}).get("screenshot", "")
-        screenshot_file = None
         if screenshot:
             if screenshot.startswith('data:image/png;base64,'):
                 screenshot = screenshot[len('data:image/png;base64,'):]
@@ -46,4 +45,6 @@ class ScrapeTool(BuiltinTool):
                 blob=base64.b64decode(screenshot.encode()), meta={"mime_type": "image/png"},
                 save_as=self.VariableKey.IMAGE.value
             )
-        return [self.create_text_message(markdown_result), self.create_json_message(crawl_result), screenshot_file]
+            return [self.create_text_message(markdown_result), self.create_json_message(crawl_result), screenshot_file]
+        else:
+            return [self.create_text_message(markdown_result), self.create_json_message(crawl_result)]
