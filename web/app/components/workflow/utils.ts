@@ -26,6 +26,8 @@ import {
 } from './types'
 import {
   CUSTOM_NODE,
+  DEFAULT_RETRY_INTERVAL,
+  DEFAULT_RETRY_MAX,
   ITERATION_CHILDREN_Z_INDEX,
   ITERATION_NODE_Z_INDEX,
   NODE_WIDTH_X_OFFSET,
@@ -281,6 +283,14 @@ export const initialNodes = (originNodes: Node[], originEdges: Edge[]) => {
     if (node.data.type === BlockEnum.Collect)
       node.data._children = iterationNodeMap[node.id] || []
 
+    if (node.data.type === BlockEnum.HttpRequest && !node.data.retry_config) {
+      node.data.retry_config = {
+        retry_enabled: true,
+        max_retries: DEFAULT_RETRY_MAX,
+        retry_interval: DEFAULT_RETRY_INTERVAL,
+      }
+    }
+
     return node
   })
 }
@@ -375,6 +385,7 @@ export const canRunBySingle = (nodeType: BlockEnum) => {
     || nodeType === BlockEnum.ParameterExtractor
     || nodeType === BlockEnum.Iteration
     || nodeType === BlockEnum.Collect
+    || nodeType === BlockEnum.DocExtractor
 }
 
 type ConnectedSourceOrTargetNodesChange = {
@@ -552,6 +563,7 @@ export const isMac = () => {
 const specialKeysNameMap: Record<string, string | undefined> = {
   ctrl: '⌘',
   alt: '⌥',
+  shift: '⇧',
 }
 
 export const getKeyboardKeyNameBySystem = (key: string) => {
@@ -798,4 +810,8 @@ export const isExceptionVariable = (variable: string, nodeType?: BlockEnum) => {
     return true
 
   return false
+}
+
+export const hasRetryNode = (nodeType?: BlockEnum) => {
+  return nodeType === BlockEnum.LLM || nodeType === BlockEnum.Tool || nodeType === BlockEnum.HttpRequest || nodeType === BlockEnum.Code
 }
