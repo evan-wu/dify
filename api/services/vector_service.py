@@ -65,6 +65,10 @@ class VectorService:
         if len(documents) > 0:
             index_processor = IndexProcessorFactory(doc_form).init_index_processor()
             index_processor.load(dataset, documents, with_keywords=True, keywords_list=keywords_list)
+            if doc_form == "qa_model" and (not keywords_list):
+                # Evan: create keywords for segment as in 'update_segment_vector' method
+                keyword = Keyword(dataset)
+                keyword.add_texts(documents)
 
     @classmethod
     def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset):
