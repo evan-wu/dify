@@ -254,7 +254,7 @@ class WeaviateVector(BaseVector):
             additional = res.pop("_additional")
             # Include the BM25 score in metadata
             metadata = res
-            metadata["score"] = additional.get("score", 0)
+            metadata["score"] = float(additional.get("score", .0))
             docs.append(Document(
                 page_content=text,
                 vector=additional["vector"],
