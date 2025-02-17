@@ -227,33 +227,53 @@ class WeaviateVector(BaseVector):
             List of Documents most similar to the query.
         """
         collection_name = self._collection_name
-        content: dict[str, Any] = {"concepts": [query]}
         properties = self._attributes
         properties.append(Field.TEXT_KEY.value)
-        if kwargs.get("search_distance"):
-            content["certainty"] = kwargs.get("search_distance")
+
         query_obj = self._client.query.get(collection_name, properties)
         if kwargs.get("where_filter"):
             query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        query_obj = query_obj.with_additional(["vector"])
-        properties = ["text"]
-        result = query_obj.with_bm25(query=query, properties=properties).with_limit(kwargs.get("top_k", 4)).do()
+
+        # Add score to additional fields
+        query_obj = query_obj.with_additional(["vector", "score"])
+
+        result = (
+            query_obj.with_bm25(
+                query=query,
+                properties=[Field.TEXT_KEY.value]
+            )
+            .with_limit(kwargs.get("top_k", 4))
+            .do()
+        )
+
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
         docs = []
         for res in result["data"]["Get"][collection_name]:
             text = res.pop(Field.TEXT_KEY.value)
             additional = res.pop("_additional")
-            docs.append(Document(page_content=text, vector=additional["vector"], metadata=res))
+            # Include the BM25 score in metadata
+            metadata = res
+            metadata["score"] = additional.get("score", 0)
+            docs.append(Document(
+                page_content=text,
+                vector=additional["vector"],
+                metadata=metadata
+            ))
         return docs
 
     def _default_schema(self, index_name: str) -> dict:
+        # for chinese - gse, trigram, for english - word (default)
         return {
             "class": index_name,
             "properties": [
                 {
                     "name": "text",
                     "dataType": ["text"],
+                    "description": "bm25 search text",
+                    "tokenization": "gse",
+                    "indexFilterable": True,
+                    "indexSearchable": True,
                 }
             ],
         }
