@@ -138,7 +138,7 @@ class TongyiLargeLanguageModel(LargeLanguageModel):
                 model_parameters={
                     "temperature": 0.5,
                 },
-                stream=False,
+                stream=True,
             )
         except Exception as ex:
             raise CredentialsValidateFailedError(str(ex))
