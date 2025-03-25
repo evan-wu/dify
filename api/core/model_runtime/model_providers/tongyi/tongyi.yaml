@@ -17,6 +17,7 @@ help:
 supported_model_types:
   - llm
   - tts
+  - speech2text
   - text-embedding
   - rerank
 configurate_methods:

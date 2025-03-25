@@ -27,7 +27,7 @@ cachetools = "~5.3.0"
 celery = "~5.4.0"
 chardet = "~5.1.0"
 cohere = "~5.2.4"
-dashscope = { version = "~1.17.0", extras = ["tokenizer"] }
+dashscope = { version = "1.22.2", extras = ["tokenizer"] }
 fal-client = "0.5.6"
 flask = "~3.1.0"
 flask-compress = "~1.17"
