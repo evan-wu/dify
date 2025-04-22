@@ -64,10 +64,11 @@ class OpenAISpeech2TextModel(_CommonTongyi, Speech2TextModel):
         dashscope.api_key = api_key
 
         recognition = Recognition(
-            model='paraformer-realtime-8k-v2',
+            model='paraformer-realtime-v1',  # paraformer-realtime-v2(slow) >  paraformer-realtime-v1 > paraformer-realtime-8k-v2
             format='mp3',
             sample_rate=16000,
             language_hints=["zh", "en"],  # “language_hints”只支持paraformer-realtime-v2模型
+            vocabulary_id="vocab-llm-61059698bdc44411b720a6db2bb1feb1",  # for LLM tech hotwords
             callback=None,
         )
         # save file to temp directory
