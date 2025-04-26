@@ -8,7 +8,7 @@ export type inputType = 'input' | 'select' | 'textarea'
 export type metadataType = DocType | 'originInfo' | 'technicalParameters'
 
 type MetadataMap =
-    Record<
+  Record<
     metadataType,
     {
       text: string
@@ -16,16 +16,16 @@ type MetadataMap =
       icon?: React.ReactNode
       iconName?: string
       subFieldsMap: Record<
-      string,
-      {
-        label: string
-        inputType?: inputType
-        field?: string
-        render?: (value: any, total?: number) => React.ReactNode | string
-      }
+        string,
+        {
+          label: string
+          inputType?: inputType
+          field?: string
+          render?: (value: any, total?: number) => React.ReactNode | string
+        }
       >
     }
-    >
+  >
 
 const fieldPrefix = 'datasetDocuments.metadata.field'
 
@@ -240,7 +240,7 @@ export const useMetadataMap = (): MetadataMap => {
         },
         'data_source_type': {
           label: t(`${fieldPrefix}.originInfo.source`),
-          render: value => t(`datasetDocuments.metadata.source.${value}`),
+          render: value => t(`datasetDocuments.metadata.source.${value === 'notion_import' ? 'notion' : value}`),
         },
       },
     },

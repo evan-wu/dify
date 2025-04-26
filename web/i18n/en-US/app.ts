@@ -155,7 +155,7 @@ const translation = {
     },
     langfuse: {
       title: 'Langfuse',
-      description: 'Traces, evals, prompt management and metrics to debug and improve your LLM application.',
+      description: 'Open-source LLM observability, evaluation, prompt management and metrics to debug and improve your LLM application.',
     },
     opik: {
       title: 'Opik',
@@ -173,7 +173,24 @@ const translation = {
       removeConfirmContent: 'The current configuration is in use, removing it will turn off the Tracing feature.',
     },
   },
+  appSelector: {
+    label: 'APP',
+    placeholder: 'Select an app...',
+    params: 'APP PARAMETERS',
+    noParams: 'No parameters needed',
+  },
   showMyCreatedAppsOnly: 'Created by me',
+  structOutput: {
+    moreFillTip: 'Showing max 10 levels of nesting',
+    required: 'Required',
+    LLMResponse: 'LLM Response',
+    configure: 'Configure',
+    notConfiguredTip: 'Structured output has not been configured yet',
+    structured: 'Structured',
+    structuredTip: 'Structured Outputs is a feature that ensures the model will always generate responses that adhere to your supplied JSON Schema',
+    modelNotSupported: 'Model not supported',
+    modelNotSupportedTip: 'The current model does not support this feature and is automatically downgraded to prompt injection.',
+  },
 }
 
 export default translation

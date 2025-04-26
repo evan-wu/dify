@@ -1,8 +1,7 @@
 const translation = {
   steps: {
     header: {
-      creation: '创建知识库',
-      update: '上传文件',
+      fallbackRoute: '知识库',
     },
     one: '选择数据源',
     two: '文本分段与清洗',
@@ -15,6 +14,11 @@ const translation = {
     configFirecrawl: '配置 🔥Firecrawl',
     apiKeyPlaceholder: '从 firecrawl.dev 获取 API Key',
     getApiKeyLinkText: '从 firecrawl.dev 获取您的 API Key',
+  },
+  watercrawl: {
+    configWatercrawl: '配置 Watercrawl',
+    apiKeyPlaceholder: '从 watercrawl.dev 获取 API Key',
+    getApiKeyLinkText: '从 watercrawl.dev 获取您的 API Key',
   },
   jinaReader: {
     configJinaReader: '配置 Jina Reader',
@@ -67,7 +71,11 @@ const translation = {
       fireCrawlNotConfiguredDescription: '请配置 Firecrawl 的 API 密钥以使用它。',
       jinaReaderNotConfigured: 'Jina Reader 未配置',
       jinaReaderNotConfiguredDescription: '请配置 Jina Reader 的免费 API 密钥以访问它。',
+      waterCrawlNotConfigured: 'Watercrawl 未配置',
+      waterCrawlNotConfiguredDescription: '请配置 Watercrawl 的 API 密钥以使用它。',
       configure: '配置',
+      configureFirecrawl: '配置 Firecrawl',
+      configureJinaReader: '配置 Jina Reader',
       run: '运行',
       firecrawlTitle: '使用 🔥Firecrawl 提取网页内容',
       firecrawlDoc: 'Firecrawl 文档',

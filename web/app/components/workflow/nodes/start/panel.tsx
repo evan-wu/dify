@@ -40,7 +40,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
 
   return (
     <div className='mt-2'>
-      <div className='px-4 pb-2 space-y-4'>
+      <div className='space-y-4 px-4 pb-2'>
         <Field
           title={t(`${i18nPrefix}.inputField`)}
           operations={
@@ -64,23 +64,8 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                       variable: 'sys.query',
                     } as any}
                     rightContent={
-                      <div className='text-xs font-normal text-gray-500'>
+                      <div className='text-xs font-normal text-text-tertiary'>
                         String
-                      </div>
-                    }
-                  />)
-              }
-
-              {
-                isChatMode && (
-                  <VarItem
-                    readonly
-                    payload={{
-                      variable: 'sys.message_history',
-                    } as any}
-                    rightContent={
-                      <div className='text-xs font-normal text-gray-500'>
-                        Array[Object]
                       </div>
                     }
                   />)
@@ -93,7 +78,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                   variable: 'sys.files',
                 } as any}
                 rightContent={
-                  <div className='text-xs font-normal text-gray-500'>
+                  <div className='text-xs font-normal text-text-tertiary'>
                     Array[File]
                   </div>
                 }
@@ -107,7 +92,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                         variable: 'sys.dialogue_count',
                       } as any}
                       rightContent={
-                        <div className='text-xs font-normal text-gray-500'>
+                        <div className='text-xs font-normal text-text-tertiary'>
                           Number
                         </div>
                       }
@@ -118,7 +103,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                         variable: 'sys.conversation_id',
                       } as any}
                       rightContent={
-                        <div className='text-xs font-normal text-gray-500'>
+                        <div className='text-xs font-normal text-text-tertiary'>
                           String
                         </div>
                       }
@@ -132,7 +117,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                   variable: 'sys.user_id',
                 } as any}
                 rightContent={
-                  <div className='text-xs font-normal text-gray-500'>
+                  <div className='text-xs font-normal text-text-tertiary'>
                     String
                   </div>
                 }
@@ -143,7 +128,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                   variable: 'sys.app_id',
                 } as any}
                 rightContent={
-                  <div className='text-xs font-normal text-gray-500'>
+                  <div className='text-xs font-normal text-text-tertiary'>
                     String
                   </div>
                 }
@@ -154,7 +139,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                   variable: 'sys.workflow_id',
                 } as any}
                 rightContent={
-                  <div className='text-xs font-normal text-gray-500'>
+                  <div className='text-xs font-normal text-text-tertiary'>
                     String
                   </div>
                 }
@@ -165,7 +150,7 @@ const Panel: FC<NodePanelProps<StartNodeType>> = ({
                   variable: 'sys.workflow_run_id',
                 } as any}
                 rightContent={
-                  <div className='text-xs font-normal text-gray-500'>
+                  <div className='text-xs font-normal text-text-tertiary'>
                     String
                   </div>
                 }
