@@ -1,9 +1,22 @@
+import base64
+import enum
+from collections.abc import Mapping
 from enum import Enum, StrEnum
 from typing import Any, Optional, Union, cast
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_serializer, field_validator, model_validator
 
+from core.entities.provider_entities import ProviderConfig
+from core.plugin.entities.parameters import (
+    PluginParameter,
+    PluginParameterOption,
+    PluginParameterType,
+    as_normal_type,
+    cast_parameter_value,
+    init_frontend_parameter,
+)
 from core.tools.entities.common_entities import I18nObject
+from core.tools.entities.constants import TOOL_SELECTOR_MODEL_IDENTITY
 
 
 class ToolLabelEnum(Enum):
@@ -97,6 +110,71 @@ class ApiProviderAuthType(Enum):
 
 
 class ToolInvokeMessage(BaseModel):
+    class TextMessage(BaseModel):
+        text: str
+
+    class JsonMessage(BaseModel):
+        json_object: dict
+
+    class BlobMessage(BaseModel):
+        blob: bytes
+
+    class BlobChunkMessage(BaseModel):
+        id: str = Field(..., description="The id of the blob")
+        sequence: int = Field(..., description="The sequence of the chunk")
+        total_length: int = Field(..., description="The total length of the blob")
+        blob: bytes = Field(..., description="The blob data of the chunk")
+        end: bool = Field(..., description="Whether the chunk is the last chunk")
+
+    class FileMessage(BaseModel):
+        pass
+
+    class VariableMessage(BaseModel):
+        variable_name: str = Field(..., description="The name of the variable")
+        variable_value: Any = Field(..., description="The value of the variable")
+        stream: bool = Field(default=False, description="Whether the variable is streamed")
+
+        @model_validator(mode="before")
+        @classmethod
+        def transform_variable_value(cls, values) -> Any:
+            """
+            Only basic types and lists are allowed.
+            """
+            value = values.get("variable_value")
+            if not isinstance(value, dict | list | str | int | float | bool):
+                raise ValueError("Only basic types and lists are allowed.")
+
+            # if stream is true, the value must be a string
+            if values.get("stream"):
+                if not isinstance(value, str):
+                    raise ValueError("When 'stream' is True, 'variable_value' must be a string.")
+
+            return values
+
+        @field_validator("variable_name", mode="before")
+        @classmethod
+        def transform_variable_name(cls, value: str) -> str:
+            """
+            The variable name must be a string.
+            """
+            if value in {"json", "text", "files"}:
+                raise ValueError(f"The variable name '{value}' is reserved.")
+            return value
+
+    class LogMessage(BaseModel):
+        class LogStatus(Enum):
+            START = "start"
+            ERROR = "error"
+            SUCCESS = "success"
+
+        id: str
+        label: str = Field(..., description="The label of the log")
+        parent_id: Optional[str] = Field(default=None, description="Leave empty for root log")
+        error: Optional[str] = Field(default=None, description="The error message")
+        status: LogStatus = Field(..., description="The status of the log")
+        data: Mapping[str, Any] = Field(..., description="Detailed log data")
+        metadata: Optional[Mapping[str, Any]] = Field(default=None, description="The metadata of the log")
+
     class MessageType(Enum):
         TEXT = "text"
         IMAGE = "image"
@@ -104,16 +182,36 @@ class ToolInvokeMessage(BaseModel):
         BLOB = "blob"
         JSON = "json"
         IMAGE_LINK = "image_link"
+        BINARY_LINK = "binary_link"
+        VARIABLE = "variable"
         FILE = "file"
+        LOG = "log"
+        BLOB_CHUNK = "blob_chunk"
 
     type: MessageType = MessageType.TEXT
     """
         plain text, image url or link url
     """
-    message: str | bytes | dict | None = None
-    # TODO: Use a BaseModel for meta
-    meta: dict[str, Any] = Field(default_factory=dict)
-    save_as: str = ""
+    message: (
+        JsonMessage | TextMessage | BlobChunkMessage | BlobMessage | LogMessage | FileMessage | None | VariableMessage
+    )
+    meta: dict[str, Any] | None = None
+
+    @field_validator("message", mode="before")
+    @classmethod
+    def decode_blob_message(cls, v):
+        if isinstance(v, dict) and "blob" in v:
+            try:
+                v["blob"] = base64.b64decode(v["blob"])
+            except Exception:
+                pass
+        return v
+
+    @field_serializer("message")
+    def serialize_message(self, v):
+        if isinstance(v, self.BlobMessage):
+            return {"blob": base64.b64encode(v.blob).decode("utf-8")}
+        return v
 
 
 class ToolInvokeMessageBinary(BaseModel):
@@ -527,3 +625,51 @@ class ToolInvokeFrom(Enum):
 
     WORKFLOW = "workflow"
     AGENT = "agent"
+    PLUGIN = "plugin"
+
+
+class ToolSelector(BaseModel):
+    dify_model_identity: str = TOOL_SELECTOR_MODEL_IDENTITY
+
+    class Parameter(BaseModel):
+        name: str = Field(..., description="The name of the parameter")
+        type: ToolParameter.ToolParameterType = Field(..., description="The type of the parameter")
+        required: bool = Field(..., description="Whether the parameter is required")
+        description: str = Field(..., description="The description of the parameter")
+        default: Optional[Union[int, float, str]] = None
+        options: Optional[list[PluginParameterOption]] = None
+
+    provider_id: str = Field(..., description="The id of the provider")
+    tool_name: str = Field(..., description="The name of the tool")
+    tool_description: str = Field(..., description="The description of the tool")
+    tool_configuration: Mapping[str, Any] = Field(..., description="Configuration, type form")
+    tool_parameters: Mapping[str, Parameter] = Field(..., description="Parameters, type llm")
+
+    def to_plugin_parameter(self) -> dict[str, Any]:
+        return self.model_dump()
+
+
+class ToolEntity(BaseModel):
+    identity: ToolIdentity
+    parameters: list[ToolParameter] = Field(default_factory=list)
+    description: Optional[ToolDescription] = None
+    output_schema: Optional[dict] = None
+    has_runtime_parameters: bool = Field(default=False, description="Whether the tool has runtime parameters")
+
+    # pydantic configs
+    model_config = ConfigDict(protected_namespaces=())
+
+    @field_validator("parameters", mode="before")
+    @classmethod
+    def set_parameters(cls, v, validation_info: ValidationInfo) -> list[ToolParameter]:
+        return v or []
+
+
+class ToolProviderEntity(BaseModel):
+    identity: ToolProviderIdentity
+    plugin_id: Optional[str] = None
+    credentials_schema: list[ProviderConfig] = Field(default_factory=list)
+
+
+class ToolProviderEntityWithPlugin(ToolProviderEntity):
+    tools: list[ToolEntity] = Field(default_factory=list)

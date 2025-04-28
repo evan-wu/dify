@@ -242,7 +242,7 @@ class ToolManager:
         get the agent tool runtime
         """
         tool_entity = cls.get_tool_runtime(
-            provider_type=agent_tool.provider_type,
+            provider_type=agent_tool.provider_type.value,
             provider_id=agent_tool.provider_id,
             tool_name=agent_tool.tool_name,
             tenant_id=tenant_id,

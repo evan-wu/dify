@@ -166,4 +166,4 @@ api.add_resource(
 from .tag import tags
 
 # Import workspace controllers
-from .workspace import account, load_balancing_config, members, model_providers, models, tool_providers, workspace
+from .workspace import account, agent_providers, load_balancing_config, members, model_providers, models, tool_providers, workspace
