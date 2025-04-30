@@ -10,6 +10,7 @@ from typing import Any, Optional, cast
 
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 from werkzeug.exceptions import Unauthorized
 
 from configs import dify_config
@@ -27,7 +28,6 @@ from models.account import (
     AccountStatus,
     Tenant,
     TenantAccountJoin,
-    TenantAccountJoinRole,
     TenantAccountRole,
     TenantStatus,
 )
@@ -101,7 +101,7 @@ class AccountService:
 
     @staticmethod
     def load_user(user_id: str) -> None | Account:
-        account = Account.query.filter_by(id=user_id).first()
+        account = db.session.query(Account).filter_by(id=user_id).first()
         if not account:
             return None
 
@@ -146,7 +146,7 @@ class AccountService:
     def authenticate(email: str, password: str, invite_token: Optional[str] = None) -> Account:
         """authenticate account with email and password"""
 
-        account = Account.query.filter_by(email=email).first()
+        account = db.session.query(Account).filter_by(email=email).first()
         if not account:
             raise AccountNotFoundError()
 
@@ -407,10 +407,8 @@ class AccountService:
 
             raise PasswordResetRateLimitExceededError()
 
-        code = "".join([str(random.randint(0, 9)) for _ in range(6)])
-        token = TokenManager.generate_token(
-            account=account, email=email, token_type="reset_password", additional_data={"code": code}
-        )
+        code, token = cls.generate_reset_password_token(account_email, account)
+
         send_reset_password_mail_task.delay(
             language=language,
             to=account_email,
@@ -418,6 +416,22 @@ class AccountService:
         )
         cls.reset_password_rate_limiter.increment_rate_limit(account_email)
         return token
+
+    @classmethod
+    def generate_reset_password_token(
+        cls,
+        email: str,
+        account: Optional[Account] = None,
+        code: Optional[str] = None,
+        additional_data: dict[str, Any] = {},
+    ):
+        if not code:
+            code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+        additional_data["code"] = code
+        token = TokenManager.generate_token(
+            account=account, email=email, token_type="reset_password", additional_data=additional_data
+        )
+        return code, token
 
     @classmethod
     def revoke_reset_password_token(cls, token: str):
@@ -571,10 +585,6 @@ class AccountService:
         return False
 
 
-def _get_login_cache_key(*, account_id: str, token: str):
-    return f"account_login:{account_id}:{token}"
-
-
 class TenantService:
     @staticmethod
     def create_tenant(name: str, is_setup: Optional[bool] = False, is_from_dashboard: Optional[bool] = False) -> Tenant:
@@ -624,8 +634,8 @@ class TenantService:
     @staticmethod
     def create_tenant_member(tenant: Tenant, account: Account, role: str = "normal") -> TenantAccountJoin:
         """Create tenant member"""
-        if role == TenantAccountJoinRole.OWNER.value:
-            if TenantService.has_roles(tenant, [TenantAccountJoinRole.OWNER]):
+        if role == TenantAccountRole.OWNER.value:
+            if TenantService.has_roles(tenant, [TenantAccountRole.OWNER]):
                 logging.error(f"Tenant {tenant.id} has already an owner.")
                 raise Exception("Tenant already has an owner.")
 
@@ -733,10 +743,10 @@ class TenantService:
         return updated_accounts
 
     @staticmethod
-    def has_roles(tenant: Tenant, roles: list[TenantAccountJoinRole]) -> bool:
+    def has_roles(tenant: Tenant, roles: list[TenantAccountRole]) -> bool:
         """Check if user has any of the given roles for a tenant"""
-        if not all(isinstance(role, TenantAccountJoinRole) for role in roles):
-            raise ValueError("all roles must be TenantAccountJoinRole")
+        if not all(isinstance(role, TenantAccountRole) for role in roles):
+            raise ValueError("all roles must be TenantAccountRole")
 
         return (
             db.session.query(TenantAccountJoin)
@@ -748,7 +758,7 @@ class TenantService:
         )
 
     @staticmethod
-    def get_user_role(account: Account, tenant: Tenant) -> Optional[TenantAccountJoinRole]:
+    def get_user_role(account: Account, tenant: Tenant) -> Optional[TenantAccountRole]:
         """Get the role of the current account for a given tenant"""
         join = (
             db.session.query(TenantAccountJoin)
@@ -785,8 +795,10 @@ class TenantService:
     @staticmethod
     def remove_member_from_tenant(tenant: Tenant, account: Account, operator: Account) -> None:
         """Remove member from tenant"""
-        if operator.id == account.id and TenantService.check_member_permission(tenant, operator, account, "remove"):
+        if operator.id == account.id:
             raise CannotOperateSelfError("Cannot operate self.")
+
+        TenantService.check_member_permission(tenant, operator, account, "remove")
 
         ta = TenantAccountJoin.query.filter_by(tenant_id=tenant.id, account_id=account.id).first()
         if not ta:
@@ -911,6 +923,8 @@ class RegisterService:
             db.session.commit()
         except WorkSpaceNotAllowedCreateError:
             db.session.rollback()
+            logging.exception("Register failed")
+            raise AccountRegisterError("Workspace is not allowed to create.")
         except AccountRegisterError as are:
             db.session.rollback()
             logging.exception("Register failed")
@@ -924,11 +938,14 @@ class RegisterService:
 
     @classmethod
     def invite_new_member(
-        cls, tenant: Tenant, email: str, language: str, role: str = "normal", inviter: Optional[Account] = None
+        cls, tenant: Tenant, email: str, language: str, role: str = "normal", inviter: Account | None = None
     ) -> str:
+        if not inviter:
+            raise ValueError("Inviter is required")
+
         """Invite new member"""
-        account = Account.query.filter_by(email=email).first()
-        assert inviter is not None, "Inviter must be provided."
+        with Session(db.engine) as session:
+            account = session.query(Account).filter_by(email=email).first()
 
         if not account:
             TenantService.check_member_permission(tenant, inviter, None, "add")

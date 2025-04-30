@@ -12,7 +12,7 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings
 
-from configs.feature.hosted_service import HostedServiceConfig
+from .hosted_service import HostedServiceConfig
 
 
 class SecurityConfig(BaseSettings):
@@ -60,6 +60,10 @@ class AppExecutionConfig(BaseSettings):
     APP_MAX_ACTIVE_REQUESTS: NonNegativeInt = Field(
         description="Maximum number of concurrent active requests per app (0 for unlimited)",
         default=0,
+    )
+    APP_DAILY_RATE_LIMIT: NonNegativeInt = Field(
+        description="Maximum number of requests per app per day",
+        default=5000,
     )
 
 
@@ -212,6 +216,10 @@ class EndpointConfig(BaseSettings):
     APP_WEB_URL: str = Field(
         description="Base URL for the web application, used for frontend references",
         default="",
+    )
+
+    ENDPOINT_URL_TEMPLATE: str = Field(
+        description="Template url for endpoint plugin", default="http://localhost:5002/e/{hook_id}"
     )
 
 
@@ -390,11 +398,6 @@ class InnerAPIConfig(BaseSettings):
         default=False,
     )
 
-    INNER_API_KEY: Optional[str] = Field(
-        description="API key for accessing the internal API",
-        default=None,
-    )
-
 
 class LoggingConfig(BaseSettings):
     """
@@ -439,11 +442,16 @@ class LoggingConfig(BaseSettings):
 
 class ModelLoadBalanceConfig(BaseSettings):
     """
-    Configuration for model load balancing
+    Configuration for model load balancing and token counting
     """
 
     MODEL_LB_ENABLED: bool = Field(
         description="Enable or disable load balancing for models",
+        default=False,
+    )
+
+    PLUGIN_BASED_TOKEN_COUNTING_ENABLED: bool = Field(
+        description="Enable or disable plugin based token counting. If disabled, token counting will return 0.",
         default=False,
     )
 
@@ -509,6 +517,11 @@ class WorkflowNodeExecutionConfig(BaseSettings):
     MAX_SUBMIT_COUNT: PositiveInt = Field(
         description="Maximum number of submitted thread count in a ThreadPool for parallel node execution",
         default=100,
+    )
+
+    WORKFLOW_NODE_EXECUTION_STORAGE: str = Field(
+        default="rdbms",
+        description="Storage backend for WorkflowNodeExecution. Options: 'rdbms', 'hybrid'",
     )
 
 
@@ -843,6 +856,11 @@ class AccountConfig(BaseSettings):
     ACCOUNT_DELETION_TOKEN_EXPIRY_MINUTES: PositiveInt = Field(
         description="Duration in minutes for which a account deletion token remains valid",
         default=5,
+    )
+
+    EDUCATION_ENABLED: bool = Field(
+        description="whether to enable education identity",
+        default=False,
     )
 
 

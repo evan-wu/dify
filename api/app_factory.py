@@ -2,6 +2,7 @@ import logging
 import time
 
 from configs import dify_config
+from contexts.wrapper import RecyclableContextVar
 from dify_app import DifyApp
 
 
@@ -15,6 +16,12 @@ def create_flask_app_with_configs() -> DifyApp:
     """
     dify_app = DifyApp(__name__)
     dify_app.config.from_mapping(dify_config.model_dump())
+
+    # add before request hook
+    @dify_app.before_request
+    def before_request():
+        # add an unique identifier to each request
+        RecyclableContextVar.increment_thread_recycles()
 
     return dify_app
 
@@ -44,8 +51,11 @@ def initialize_extensions(app: DifyApp):
         ext_login,
         ext_mail,
         ext_migrate,
+        ext_otel,
+        ext_otel_patch,
         ext_proxy_fix,
         ext_redis,
+        ext_repositories,
         ext_sentry,
         ext_set_secretkey,
         ext_storage,
@@ -66,6 +76,7 @@ def initialize_extensions(app: DifyApp):
         ext_migrate,
         ext_redis,
         ext_storage,
+        ext_repositories,
         ext_celery,
         ext_login,
         ext_mail,
@@ -74,6 +85,8 @@ def initialize_extensions(app: DifyApp):
         ext_proxy_fix,
         ext_blueprints,
         ext_commands,
+        ext_otel_patch,  # Apply patch before initializing OpenTelemetry
+        ext_otel,
     ]
     for ext in extensions:
         short_name = ext.__name__.split(".")[-1]
