@@ -527,8 +527,9 @@ class ToolManager:
                         cls._builtin_tools_labels[tool.entity.identity.name] = tool.entity.identity.label
                     yield provider
 
-                except Exception:
-                    logger.exception(f"load builtin provider {provider}")
+                except Exception as e:
+                    logger.error(f"load builtin provider {provider_path}")
+                    logger.exception(e)
                     continue
         # set builtin providers loaded
         cls._builtin_providers_loaded = True

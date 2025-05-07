@@ -5,7 +5,7 @@ import requests
 from lxml.html import etree
 
 from core.tools.entities.tool_entities import ToolInvokeMessage
-from core.tools.tool.builtin_tool import BuiltinTool
+from core.tools.builtin_tool.tool import BuiltinTool
 
 
 class BiyingcnSearchTool(BuiltinTool):
