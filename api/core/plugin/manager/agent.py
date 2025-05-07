@@ -2,10 +2,12 @@ from collections.abc import Generator, Callable
 from typing import Any, Optional, TypeVar
 
 from core.agent.entities import AgentInvokeMessage
+from core.agent.strategy.local.agent_strategy_factory import AgentStrategyFactory
 from core.plugin.entities.plugin import GenericProviderID
 from core.plugin.entities.plugin_daemon import (
     PluginAgentProviderEntity,
 )
+from dify_plugin.core.entities.plugin.request import AgentInvokeRequest
 
 import json
 from pydantic import BaseModel
@@ -91,29 +93,16 @@ class PluginAgentManager:
         """
         Invoke the agent with the given tenant, user, plugin, provider, name and parameters.
         """
-
-        agent_provider_id = GenericProviderID(agent_provider)
-
-        response = self._request_with_plugin_daemon_response_stream(
-            "POST",
-            f"plugin/{tenant_id}/dispatch/agent_strategy/invoke",
-            AgentInvokeMessage,
-            data={
+        agent_strategy_factory = AgentStrategyFactory()
+        response = agent_strategy_factory.invoke_agent_strategy(AgentInvokeRequest(**{
                 "user_id": user_id,
                 "conversation_id": conversation_id,
                 "app_id": app_id,
                 "message_id": message_id,
-                "data": {
-                    "agent_strategy_provider": agent_provider_id.provider_name,
-                    "agent_strategy": agent_strategy,
-                    "agent_strategy_params": agent_params,
-                },
-            },
-            headers={
-                "X-Plugin-ID": agent_provider_id.plugin_id,
-                "Content-Type": "application/json",
-            },
-        )
+                "agent_strategy_provider": agent_provider,
+                "agent_strategy": agent_strategy,
+                "agent_strategy_params": agent_params,
+            }))
         return response
 
     def _request_with_plugin_daemon_response(
@@ -130,6 +119,7 @@ class PluginAgentManager:
         """
         Make a request to the plugin daemon inner API and return the response as a model.
         """
+        # TODO: use local agent-strategies data from agent_strategy_factory
         if "agent_strategies" in path:
             json_response = json.loads('''
         {

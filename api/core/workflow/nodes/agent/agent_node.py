@@ -5,7 +5,7 @@ from typing import Any, Optional, cast
 
 from core.agent.entities import AgentToolEntity
 from core.agent.plugin_entities import AgentStrategyParameter
-from core.agent.strategy.local_to_plugin_types_convert import LocalToPluginTypesConvert
+from core.agent.strategy.local.local_to_plugin_types_convert import LocalToPluginTypesConvert
 from core.memory.token_buffer_memory import TokenBufferMemory
 from core.model_manager import ModelInstance, ModelManager
 from core.model_runtime.entities.model_entities import AIModelEntity, ModelType
