@@ -5,7 +5,8 @@ import uuid
 from collections.abc import Generator
 from http import HTTPStatus
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Optional, Union, cast, ClassVar
+from enum import Enum
 
 from dashscope import Generation, MultiModalConversation, get_tokenizer  # type: ignore
 from dashscope.api_entities.dashscope_response import GenerationResponse  # type: ignore
@@ -54,7 +55,7 @@ from core.model_runtime.model_providers.__base.large_language_model import Large
 
 
 class TongyiLargeLanguageModel(LargeLanguageModel):
-    tokenizers = {}
+    tokenizers: ClassVar[dict] = {}
 
     def _invoke(
         self,
@@ -508,7 +509,7 @@ class TongyiLargeLanguageModel(LargeLanguageModel):
 
                 properties_definitions[p_key] = {
                     "description": desc,
-                    "type": p_val["type"],
+                    "type": p_val["type"].value if isinstance(p_val["type"], Enum) else p_val["type"]
                 }
 
             tool_definition = {

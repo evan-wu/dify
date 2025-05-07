@@ -80,7 +80,7 @@ readabilipy = "0.2.0"
 redis = { version = "~5.0.3", extras = ["hiredis"] }
 replicate = "~0.22.0"
 resend = "~0.7.0"
-sagemaker = "~2.231.0"
+sagemaker = "2.243.3"
 scikit-learn = "~1.5.1"
 sentry-sdk = { version = "~1.44.1", extras = ["flask"] }
 sqlalchemy = "~2.0.29"
@@ -104,6 +104,12 @@ zhipuai = "~2.1.5"
 # Related transparent dependencies with pinned version
 # required by main implementations
 ############################################################
+opentelemetry-exporter-otlp-proto-http = "1.27.0"
+opentelemetry-instrumentation-celery = "0.48b0"
+opentelemetry-instrumentation-flask = "0.48b0"
+opentelemetry-instrumentation-sqlalchemy = "0.48b0"
+opentelemetry-propagator-b3 = "1.27.0"
+json-repair = "0.41.1"
 [tool.poetry.group.indirect.dependencies]
 kaleido = "0.2.1"
 rank-bm25 = "~0.2.2"

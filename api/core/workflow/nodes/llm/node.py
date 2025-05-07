@@ -38,7 +38,6 @@ from core.model_runtime.entities.model_entities import (
 )
 from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
 from core.model_runtime.utils.encoders import jsonable_encoder
-from core.plugin.entities.plugin import ModelProviderID
 from core.prompt.entities.advanced_prompt_entities import CompletionModelPromptTemplate, MemoryConfig
 from core.prompt.utils.prompt_message_util import PromptMessageUtil
 from core.variables import (
@@ -150,6 +149,7 @@ class LLMNode(BaseNode[LLMNodeData]):
                 if isinstance(event, RunRetrieverResourceEvent):
                     context = event.context
                     yield event
+
             if context:
                 node_inputs["#context#"] = context
 
@@ -239,6 +239,7 @@ class LLMNode(BaseNode[LLMNodeData]):
                 )
             )
         except Exception as e:
+            logger.exception(e)
             yield RunCompletedEvent(
                 run_result=NodeRunResult(
                     status=WorkflowNodeExecutionStatus.FAILED,
@@ -807,8 +808,7 @@ class LLMNode(BaseNode[LLMNodeData]):
         if used_quota is not None and system_configuration.current_quota_type is not None:
             db.session.query(Provider).filter(
                 Provider.tenant_id == tenant_id,
-                # TODO: Use provider name with prefix after the data migration.
-                Provider.provider_name == ModelProviderID(model_instance.provider).provider_name,
+                Provider.provider_name == model_instance.provider,
                 Provider.provider_type == ProviderType.SYSTEM.value,
                 Provider.quota_type == system_configuration.current_quota_type.value,
                 Provider.quota_limit > Provider.quota_used,

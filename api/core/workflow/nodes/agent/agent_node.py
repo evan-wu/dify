@@ -1,9 +1,11 @@
 import json
 from collections.abc import Generator, Mapping, Sequence
+import logging
 from typing import Any, Optional, cast
 
 from core.agent.entities import AgentToolEntity
 from core.agent.plugin_entities import AgentStrategyParameter
+from core.agent.strategy.local_to_plugin_types_convert import LocalToPluginTypesConvert
 from core.memory.token_buffer_memory import TokenBufferMemory
 from core.model_manager import ModelInstance, ModelManager
 from core.model_runtime.entities.model_entities import AIModelEntity, ModelType
@@ -26,6 +28,8 @@ from extensions.ext_database import db
 from factories.agent_factory import get_plugin_agent_strategy
 from models.model import Conversation
 from models.workflow import WorkflowNodeExecutionStatus
+
+logger = logging.getLogger(__name__)
 
 
 class AgentNode(ToolNode):
@@ -84,6 +88,8 @@ class AgentNode(ToolNode):
                 conversation_id=conversation_id.text if conversation_id else None,
             )
         except Exception as e:
+            logger.error(f"Failed to invoke strategy: {node_data.agent_strategy_name}, {str(e)}")
+            logger.exception(e)
             yield RunCompletedEvent(
                 run_result=NodeRunResult(
                     status=WorkflowNodeExecutionStatus.FAILED,
@@ -95,9 +101,12 @@ class AgentNode(ToolNode):
 
         try:
             # convert tool messages
+            # TODO: pass tenant_id to model_provider_factory
+            from core.model_runtime.model_providers import model_provider_factory
+            model_provider_factory.tenant_id = self.tenant_id
 
             yield from self._transform_message(
-                message_stream,
+                LocalToPluginTypesConvert.to_local_agent_invoke_message(message_stream),
                 {
                     "icon": self.agent_strategy_icon,
                     "agent_strategy": cast(AgentNodeData, self.node_data).agent_strategy_name,

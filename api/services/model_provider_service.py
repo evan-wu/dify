@@ -1,9 +1,15 @@
 import logging
-from typing import Optional
+import mimetypes
+import os
+from pathlib import Path
+from typing import Optional, cast
+
+from flask import current_app
 
 from core.entities.model_entities import ModelStatus, ModelWithProviderEntity, ProviderModelWithStatusEntity
 from core.model_runtime.entities.model_entities import ModelType, ParameterRule
-from core.model_runtime.model_providers.model_provider_factory import ModelProviderFactory
+from core.model_runtime.model_providers import model_provider_factory
+from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
 from core.provider_manager import ProviderManager
 from models.provider import ProviderType
 from services.entities.model_provider_entities import (
@@ -335,9 +341,16 @@ class ModelProviderService:
         provider_configurations = self.provider_manager.get_configurations(tenant_id)
 
         # Get provider configuration
+        if "/" in provider:
+            provider = provider.rsplit("/", 1)[1]
+
         provider_configuration = provider_configurations.get(provider)
         if not provider_configuration:
             raise ValueError(f"Provider {provider} does not exist.")
+
+        # Get model instance of LLM
+        model_type_instance = provider_configuration.get_model_type_instance(ModelType.LLM)
+        model_type_instance = cast(LargeLanguageModel, model_type_instance)
 
         # fetch credentials
         credentials = provider_configuration.get_current_credentials(model_type=ModelType.LLM, model=model)
@@ -345,11 +358,8 @@ class ModelProviderService:
         if not credentials:
             return []
 
-        model_schema = provider_configuration.get_model_schema(
-            model_type=ModelType.LLM, model=model, credentials=credentials
-        )
-
-        return model_schema.parameter_rules if model_schema else []
+        # Call get_parameter_rules method of model instance to get model parameter rules
+        return list(model_type_instance.get_parameter_rules(model=model, credentials=credentials))
 
     def get_default_model_of_model_type(self, tenant_id: str, model_type: str) -> Optional[DefaultModelResponse]:
         """
@@ -360,9 +370,8 @@ class ModelProviderService:
         :return:
         """
         model_type_enum = ModelType.value_of(model_type)
-
+        result = self.provider_manager.get_default_model(tenant_id=tenant_id, model_type=model_type_enum)
         try:
-            result = self.provider_manager.get_default_model(tenant_id=tenant_id, model_type=model_type_enum)
             return (
                 DefaultModelResponse(
                     model=result.model,
@@ -380,7 +389,7 @@ class ModelProviderService:
                 else None
             )
         except Exception as e:
-            logger.debug(f"get_default_model_of_model_type error: {e}")
+            logger.error(f"get_default_model_of_model_type error: {e}")
             return None
 
     def update_default_model_of_model_type(self, tenant_id: str, model_type: str, provider: str, model: str) -> None:
@@ -410,10 +419,45 @@ class ModelProviderService:
         :param lang: language (zh_Hans or en_US)
         :return:
         """
-        model_provider_factory = ModelProviderFactory(tenant_id)
-        byte_data, mime_type = model_provider_factory.get_provider_icon(provider, icon_type, lang)
+        provider_instance = model_provider_factory.get_provider_instance(provider)
+        provider_schema = provider_instance.get_provider_schema()
+        file_name: str | None = None
 
-        return byte_data, mime_type
+        if icon_type.lower() == "icon_small":
+            if not provider_schema.icon_small:
+                raise ValueError(f"Provider {provider} does not have small icon.")
+
+            if lang.lower() == "zh_hans":
+                file_name = provider_schema.icon_small.zh_Hans
+            else:
+                file_name = provider_schema.icon_small.en_US
+        else:
+            if not provider_schema.icon_large:
+                raise ValueError(f"Provider {provider} does not have large icon.")
+
+            if lang.lower() == "zh_hans":
+                file_name = provider_schema.icon_large.zh_Hans
+            else:
+                file_name = provider_schema.icon_large.en_US
+        if not file_name:
+            return None, None
+
+        root_path = current_app.root_path
+        provider_instance_path = os.path.dirname(
+            os.path.join(root_path, provider_instance.__class__.__module__.replace(".", "/"))
+        )
+        file_path = os.path.join(provider_instance_path, "_assets")
+        file_path = os.path.join(file_path, file_name)
+
+        if not os.path.exists(file_path):
+            return None, None
+
+        mimetype, _ = mimetypes.guess_type(file_path)
+        mimetype = mimetype or "application/octet-stream"
+
+        # read binary from file
+        byte_data = Path(file_path).read_bytes()
+        return byte_data, mimetype
 
     def switch_preferred_provider(self, tenant_id: str, provider: str, preferred_provider_type: str) -> None:
         """
