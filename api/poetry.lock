@@ -556,20 +556,20 @@ trio = ["trio (>=0.26.1)"]
 
 [[package]]
 name = "arxiv"
-version = "2.1.0"
+version = "2.2.0"
 description = "Python wrapper for the arXiv API: https://arxiv.org/help/api/"
 optional = false
 python-versions = ">=3.7"
 groups = ["tools"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "arxiv-2.1.0-py3-none-any.whl", hash = "sha256:d634a0a59c9f05baf524eaa65563bb0a4532d2b4727a1162a1a9ba7e1e6e48cc"},
-    {file = "arxiv-2.1.0.tar.gz", hash = "sha256:eb4b1d5ab9dfd66027c344bb324c20be21d56fe15f6ce216ed5b209df747dea8"},
+    {file = "arxiv-2.2.0-py3-none-any.whl", hash = "sha256:545b8af5ab301efff7697cd112b5189e631b80521ccbc33fbc1e1f9cff63ca4d"},
+    {file = "arxiv-2.2.0.tar.gz", hash = "sha256:6072a2211e95697092ef32acde0144d7de2cfa71208e2751724316c9df322cc0"},
 ]
 
 [package.dependencies]
-feedparser = "6.0.10"
-requests = "2.31.0"
+feedparser = ">=6.0.10,<6.1.0"
+requests = ">=2.32.0,<2.33.0"
 
 [[package]]
 name = "asgiref"
@@ -2304,6 +2304,34 @@ files = [
 packaging = "*"
 
 [[package]]
+name = "dify-plugin"
+version = "0.2.1"
+description = "Dify Plugin SDK"
+optional = false
+python-versions = ">=3.11"
+groups = ["main"]
+markers = "python_version == \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "dify_plugin-0.2.1-py3-none-any.whl", hash = "sha256:84e6afa2ecee28c0816d8cf54115250c0e4d84aeb1f67296ac39e303b1f723e8"},
+    {file = "dify_plugin-0.2.1.tar.gz", hash = "sha256:ce415fe516285dba8ce6ff8c964d30efb8e11f64d23c8d1bb22bf91281ed0088"},
+]
+
+[package.dependencies]
+dpkt = ">=1.9.8,<1.10.0"
+Flask = ">=3.0.3,<3.1.0"
+gevent = ">=24.11.1,<24.12.0"
+httpx = ">=0.27.0,<0.28.0"
+pydantic = ">=2.8.2"
+pydantic_settings = ">=2.5.0,<3.0.0"
+pydub = ">=0.25.1,<0.26.0"
+pyyaml = ">=6.0.1,<6.1.0"
+requests = ">=2.32.3,<2.33.0"
+socksio = "1.0.0"
+tiktoken = ">=0.8.0,<0.9.0"
+Werkzeug = ">=3.0.3,<3.1.0"
+yarl = ">=1.9.4,<2.0"
+
+[[package]]
 name = "dill"
 version = "0.3.9"
 description = "serialize all of Python"
@@ -2389,6 +2417,19 @@ click = ">=6,<9"
 click_default_group = ">=1.2,<2.0"
 ply = ">=3.11,<4.0"
 typing_extensions = ">=4.0,<5.0"
+
+[[package]]
+name = "dpkt"
+version = "1.9.8"
+description = "fast, simple packet creation / parsing, with definitions for the basic TCP/IP protocols"
+optional = false
+python-versions = "*"
+groups = ["main"]
+markers = "python_version == \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "dpkt-1.9.8-py3-none-any.whl", hash = "sha256:4da4d111d7bf67575b571f5c678c71bddd2d8a01a3d57d489faf0a92c748fbfd"},
+    {file = "dpkt-1.9.8.tar.gz", hash = "sha256:43f8686e455da5052835fd1eda2689d51de3670aac9799b1b00cfd203927ee45"},
+]
 
 [[package]]
 name = "duckdb"
@@ -2799,23 +2840,23 @@ six = ">=1.10.0"
 
 [[package]]
 name = "flask"
-version = "3.1.0"
+version = "3.0.3"
 description = "A simple framework for building complex web applications."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main", "dev", "tools"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "flask-3.1.0-py3-none-any.whl", hash = "sha256:d667207822eb83f1c4b50949b1623c8fc8d51f2341d65f72e1a1815397551136"},
-    {file = "flask-3.1.0.tar.gz", hash = "sha256:5f873c5184c897c8d9d1b05df1e3d01b14910ce69607a117bd3277098a5836ac"},
+    {file = "flask-3.0.3-py3-none-any.whl", hash = "sha256:34e815dfaa43340d1d15a5c3a02b8476004037eb4840b34910c6e21679d288f3"},
+    {file = "flask-3.0.3.tar.gz", hash = "sha256:ceb27b0af3823ea2737928a4d99d125a06175b8512c445cbd9a9ce200ef76842"},
 ]
 
 [package.dependencies]
-blinker = ">=1.9"
+blinker = ">=1.6.2"
 click = ">=8.1.3"
-itsdangerous = ">=2.2"
+itsdangerous = ">=2.1.2"
 Jinja2 = ">=3.1.2"
-Werkzeug = ">=3.1"
+Werkzeug = ">=3.0.0"
 
 [package.extras]
 async = ["asgiref (>=3.2)"]
@@ -6657,31 +6698,39 @@ opencensus = ">=0.8.0,<1.0.0"
 
 [[package]]
 name = "opendal"
-version = "0.45.13"
+version = "0.45.19"
 description = "Apache OpenDAL™ Python Binding"
 optional = false
 python-versions = ">=3.10"
 groups = ["storage"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "opendal-0.45.13-cp310-cp310-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:3afe389215249b1d067cace6b8d1259ab1a2a74bc963d1c7e47dac5e85c8ffc5"},
-    {file = "opendal-0.45.13-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3a0062482d348617abdc89515fa9cea5c17ae8ac28694b8b5a704530eb91c90e"},
-    {file = "opendal-0.45.13-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:5cb06d73cc93a13e1a4faa2f369ffe64726f459e53358058720d67efec6dd5fd"},
-    {file = "opendal-0.45.13-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:122942d8185b441774d566c6970b0012ffde9370282c4384c84e6eaa793d4891"},
-    {file = "opendal-0.45.13-cp310-cp310-win_amd64.whl", hash = "sha256:e451e1ae63343d07fa57225417e898639240083d2a53ecd7dbafa72254f058bd"},
-    {file = "opendal-0.45.13-cp311-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:4b8faf7f780849c6bd777528080864c6c5e46e61488fafb8d2dcb0f9e4e88845"},
-    {file = "opendal-0.45.13-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f1987cc0ac3e05ebcd963b431a0c05607d9a9d7ed204ba8053258f812434b262"},
-    {file = "opendal-0.45.13-cp311-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:9fb89b30ee3cb8fd432ada45be0ae9dad9d7483e1e1db22deb3074ef61a194ca"},
-    {file = "opendal-0.45.13-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:606e99a147de8a0a41285fb240e0280fea6a7436fe3f7341815157bce69104d6"},
-    {file = "opendal-0.45.13-cp311-abi3-win_amd64.whl", hash = "sha256:ab187174dede49a7e9821a4d4792676a62c887279465d33624009e720a086667"},
-    {file = "opendal-0.45.13.tar.gz", hash = "sha256:ed818dd564beeace57a040f65415525838ad78c20bdffdbe0ba54281e7f17064"},
+    {file = "opendal-0.45.19-cp310-cp310-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:c5ad1c1179a1f1119da9e4c72233d6ea2e010ed252ed5f1b29ab5abf9f9acb05"},
+    {file = "opendal-0.45.19-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:765b89652692f130713b3cebf3db1ad6a542fd9be14f3406bd282b869e4a54f0"},
+    {file = "opendal-0.45.19-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5ca9b492577d2d39c8371f90b658b81491debf041507c6b26c0617bda1782bfa"},
+    {file = "opendal-0.45.19-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:e21677cc9b676b23ac6da2dfa3fa9d8552db16bedc3347d58d08672386537885"},
+    {file = "opendal-0.45.19-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:59f587e1ab931dade6b4ce30c5eaee20c1c9ef2610ed4be3260184f39b48b7ef"},
+    {file = "opendal-0.45.19-cp310-cp310-musllinux_1_1_armv7l.whl", hash = "sha256:a41a76bd83026db2b5c127c1894de8f5db6354a5b4fd22c3687925fb1d9b77d4"},
+    {file = "opendal-0.45.19-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:3f5be23f4c117a6d242a3794f321bcd4a6bc1d736a0fd6fca4c47e9f33f84a1a"},
+    {file = "opendal-0.45.19-cp310-cp310-win_amd64.whl", hash = "sha256:788bb08d1c7b55b8657f8e3d52103f7a644f181689cb6df471ef6d4939071309"},
+    {file = "opendal-0.45.19-cp311-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:b6d3bb0ffc6dc453c896fdbe6833ad0f1dc295a8a75502907593684fbede0e0c"},
+    {file = "opendal-0.45.19-cp311-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:a2d6673abf0fbca491543a783e07a314932578da226228cbb0cbfdfd860e0b58"},
+    {file = "opendal-0.45.19-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:51edc429f3af65c9e6aad8d66872456f217c2dd4b5b735e7ccda337fea13f1d0"},
+    {file = "opendal-0.45.19-cp311-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:d923c19871cc7504e3096e067dd9e855a0e518557460b39b4bedf87b56dcba6b"},
+    {file = "opendal-0.45.19-cp311-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:b37786c13ac9370017b071744eec3b1cabd54408049e34e7317c76cd3867f8a7"},
+    {file = "opendal-0.45.19-cp311-abi3-musllinux_1_1_armv7l.whl", hash = "sha256:c6182b5f47057bf9160242f6a0ad9e6351d2e78d32fdea0b99137bbcd1678006"},
+    {file = "opendal-0.45.19-cp311-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:a20e956745bd8d1c9ecddbfdb4bc1fb86dd82fe1e1b84ccaaec1551d80396713"},
+    {file = "opendal-0.45.19-cp311-abi3-win_amd64.whl", hash = "sha256:4b72fc14aa55ff7ff409f67b96f12c271b4373091743be6f213cb980531f1bfe"},
+    {file = "opendal-0.45.19-cp313-cp313t-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:194f6680deb6756645224b409acc474a4fb42bbc4fff1d64c696b6233e1d8829"},
+    {file = "opendal-0.45.19-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:5889f1ac22a64860efdbda66345345c03b8aa8fe71c906428620ef756add74d8"},
+    {file = "opendal-0.45.19-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c2795bdc88b689accb0a6ed4798cf5e02d5020f49262200af31f6d0f0d71c548"},
+    {file = "opendal-0.45.19-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:a1fb1d98218c44485df00178b2632012eeeff36b20c2a691756d74224ad506fc"},
+    {file = "opendal-0.45.19-cp313-cp313t-musllinux_1_1_aarch64.whl", hash = "sha256:0c2afd0fff38e0e83f43a3de3db8dbd332236a451626d8cdb9dd1e9f2e5d954e"},
+    {file = "opendal-0.45.19-cp313-cp313t-musllinux_1_1_armv7l.whl", hash = "sha256:793ca2c96443d5b368bbd52ef0558a365d0a83a3734c3b60f3fffb3fe36a1fc9"},
+    {file = "opendal-0.45.19-cp313-cp313t-musllinux_1_1_x86_64.whl", hash = "sha256:f81514941b3338e1fe25f70753e44f17a7d58d7a4c33814556491c784cc15149"},
+    {file = "opendal-0.45.19-cp313-cp313t-win_amd64.whl", hash = "sha256:3bdb888b213244b55eb4addee3633bfb1d79484eeec43949c09445b733cb98ff"},
+    {file = "opendal-0.45.19.tar.gz", hash = "sha256:29018eb029eda28fd9709b579c8ddacd89a201b524fe8a80496afb05ea2fd29c"},
 ]
-
-[package.extras]
-benchmark = ["boto3", "boto3-stubs[essential]", "gevent", "greenify", "greenlet", "pydantic"]
-docs = ["pdoc"]
-lint = ["ruff"]
-test = ["pytest", "pytest-asyncio", "python-dotenv"]
 
 [[package]]
 name = "openpyxl"
@@ -8329,7 +8378,7 @@ version = "0.25.1"
 description = "Manipulate audio with an simple and easy high level interface"
 optional = false
 python-versions = "*"
-groups = ["tools"]
+groups = ["main", "tools"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
     {file = "pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6"},
@@ -9417,15 +9466,15 @@ dev = ["pylint", "pyright", "pytest", "pytest-asyncio", "pytest-recording", "res
 
 [[package]]
 name = "requests"
-version = "2.31.0"
+version = "2.32.3"
 description = "Python HTTP for Humans."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 groups = ["main", "storage", "tools", "vdb"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "requests-2.31.0-py3-none-any.whl", hash = "sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f"},
-    {file = "requests-2.31.0.tar.gz", hash = "sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1"},
+    {file = "requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6"},
+    {file = "requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760"},
 ]
 
 [package.dependencies]
@@ -9492,19 +9541,20 @@ requests = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "resend"
-version = "0.7.2"
+version = "2.10.0"
 description = "Resend Python SDK"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "resend-0.7.2-py2.py3-none-any.whl", hash = "sha256:4f16711e11b007da7f8826283af6cdc34c99bd77c1dfad92afe9466a90d06c61"},
-    {file = "resend-0.7.2.tar.gz", hash = "sha256:bb10522a5ef1235b6cc2d74902df39c4863ac12b89dc48b46dd5c6f980574622"},
+    {file = "resend-2.10.0-py2.py3-none-any.whl", hash = "sha256:1d65a36b032522d5eb738e08956ca29cbaa217a270efbe915a071eb72c0d6956"},
+    {file = "resend-2.10.0.tar.gz", hash = "sha256:f9091f487f0d878095bb7a744549969c624815413b7ac82ba92039e2d0804b75"},
 ]
 
 [package.dependencies]
-requests = "2.31.0"
+requests = ">=2.31.0"
+typing-extensions = ">=4.4.0"
 
 [[package]]
 name = "retry"
@@ -11602,16 +11652,19 @@ test = ["aiohttp (>=3.10.5)", "flake8 (>=5.0,<6.0)", "mypy (>=0.800)", "psutil",
 
 [[package]]
 name = "validators"
-version = "0.21.0"
+version = "0.34.0"
 description = "Python Data Validation for Humans™"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8"
 groups = ["main", "vdb"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "validators-0.21.0-py3-none-any.whl", hash = "sha256:3470db6f2384c49727ee319afa2e97aec3f8fad736faa6067e0fd7f9eaf2c551"},
-    {file = "validators-0.21.0.tar.gz", hash = "sha256:245b98ab778ed9352a7269c6a8f6c2a839bed5b2a7e3e60273ce399d247dd4b3"},
+    {file = "validators-0.34.0-py3-none-any.whl", hash = "sha256:c804b476e3e6d3786fa07a30073a4ef694e617805eb1946ceee3fe5a9b8b1321"},
+    {file = "validators-0.34.0.tar.gz", hash = "sha256:647fe407b45af9a74d245b943b18e6a816acf4926974278f6dd617778e1e781f"},
 ]
+
+[package.extras]
+crypto-eth-addresses = ["eth-hash[pycryptodome] (>=0.7.0)"]
 
 [[package]]
 name = "vanna"
@@ -11835,25 +11888,24 @@ files = [
 
 [[package]]
 name = "weaviate-client"
-version = "3.21.0"
+version = "3.24.0"
 description = "A python native Weaviate client"
 optional = false
 python-versions = ">=3.8"
 groups = ["vdb"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "weaviate-client-3.21.0.tar.gz", hash = "sha256:ec94ac554883c765e94da8b2947c4f0fa4a0378ed3bbe9f3653df3a5b1745a6d"},
-    {file = "weaviate_client-3.21.0-py3-none-any.whl", hash = "sha256:420444ded7106fb000f4f8b2321b5f5fa2387825aa7a303d702accf61026f9d2"},
+    {file = "weaviate-client-3.24.0.tar.gz", hash = "sha256:0c2a26c4923baa2e43a8a6d7f4913d7ea02ce490d1119bd26414b84f402600b1"},
+    {file = "weaviate_client-3.24.0-py3-none-any.whl", hash = "sha256:e3c20daa9887459f47729507116391d09bf3fe3e62b3fd3b5908310fb4da0a9a"},
 ]
 
 [package.dependencies]
-authlib = ">=1.1.0"
-requests = ">=2.28.0,<=2.31.0"
-tqdm = ">=4.59.0,<5.0.0"
-validators = ">=0.18.2,<=0.21.0"
+authlib = ">=1.2.1,<2.0.0"
+requests = ">=2.30.0,<3.0.0"
+validators = ">=0.21.2,<1.0.0"
 
 [package.extras]
-grpc = ["grpcio", "grpcio-tools"]
+grpc = ["grpcio (>=1.57.0,<2.0.0)", "grpcio-tools (>=1.57.0,<2.0.0)"]
 
 [[package]]
 name = "webencodings"
@@ -11985,15 +12037,15 @@ files = [
 
 [[package]]
 name = "werkzeug"
-version = "3.1.3"
+version = "3.0.6"
 description = "The comprehensive WSGI web application library."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main", "dev", "tools"]
 markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "werkzeug-3.1.3-py3-none-any.whl", hash = "sha256:54b78bf3716d19a65be4fceccc0d1d7b89e608834989dfae50ea87564639213e"},
-    {file = "werkzeug-3.1.3.tar.gz", hash = "sha256:60723ce945c19328679790e3282cc758aa4a6040e4bb330f53d30fa546d44746"},
+    {file = "werkzeug-3.0.6-py3-none-any.whl", hash = "sha256:1bc0c2310d2fbb07b1dd1105eba2f7af72f322e1e455f2f93c993bee8c8a5f17"},
+    {file = "werkzeug-3.0.6.tar.gz", hash = "sha256:a8dd59d4de28ca70471a34cba79bed5f7ef2e036a76b3ab0835474246eb41f8d"},
 ]
 
 [package.dependencies]
@@ -12570,4 +12622,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "ef3bff9e0a50997f4077c223994eb07568e5a083f2a0a842d4d197769d64b05d"
+content-hash = "c09e68a5ab845703a8f8d2e6f326d89b6e7f21c9d283cdcac076a39583c45f63"
