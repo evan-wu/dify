@@ -5,16 +5,15 @@ import httpx
 from core.model_runtime.entities.rerank_entities import RerankDocument, RerankResult
 from core.model_runtime.errors.invoke import InvokeError
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
-from core.model_runtime.model_providers.__base.rerank_model import RerankModel
-from core.model_runtime.model_providers.wenxin._common import _CommonWenxin
-from core.model_runtime.model_providers.wenxin.wenxin_errors import (
-    InternalServerError,
-    invoke_error_mapping,
-)
+from .._common import _CommonWenxin
+from ..wenxin_errors import InternalServerError, invoke_error_mapping
+from ...__base.rerank_model import RerankModel
 
 
 class WenxinRerank(_CommonWenxin):
-    def rerank(self, model: str, query: str, docs: list[str], top_n: Optional[int] = None):
+    def rerank(
+        self, model: str, query: str, docs: list[str], top_n: Optional[int] = None
+    ):
         access_token = self._get_access_token()
         url = f"{self.api_bases[model]}?access_token={access_token}"
         # For issue #11252
@@ -27,12 +26,16 @@ class WenxinRerank(_CommonWenxin):
         try:
             response = httpx.post(
                 url,
-                json={"model": model, "query": query, "documents": docs, "top_n": top_n},
+                json={
+                    "model": model,
+                    "query": query,
+                    "documents": docs,
+                    "top_n": top_n,
+                },
                 headers={"Content-Type": "application/json"},
             )
             response.raise_for_status()
             data = response.json()
-            # wenxin error handling
             if "error_code" in data:
                 raise InternalServerError(data["error_msg"])
             return data
@@ -69,36 +72,26 @@ class WenxinRerankModel(RerankModel):
         """
         if len(docs) == 0:
             return RerankResult(model=model, docs=[])
-
         api_key = credentials["api_key"]
         secret_key = credentials["secret_key"]
-
         wenxin_rerank: WenxinRerank = WenxinRerank(api_key, secret_key)
-
         try:
             results = wenxin_rerank.rerank(model, query, docs, top_n)
-
             rerank_documents = []
-            if "results" not in results:
-                raise ValueError("results key not found in response")
-
             for result in results["results"]:
                 index = result["index"]
                 if "document" in result:
                     text = result["document"]
                 else:
-                    # llama.cpp rerank maynot return original documents
                     text = docs[index]
-
                 rerank_document = RerankDocument(
-                    index=index,
-                    text=text,
-                    score=result["relevance_score"],
+                    index=index, text=text, score=result["relevance_score"]
                 )
-
-                if score_threshold is None or result["relevance_score"] >= score_threshold:
+                if (
+                    score_threshold is None
+                    or result["relevance_score"] >= score_threshold
+                ):
                     rerank_documents.append(rerank_document)
-
             return RerankResult(model=model, docs=rerank_documents)
         except httpx.HTTPStatusError as e:
             raise InternalServerError(str(e))
@@ -117,10 +110,8 @@ class WenxinRerankModel(RerankModel):
                 credentials=credentials,
                 query="What is the capital of the United States?",
                 docs=[
-                    "Carson City is the capital city of the American state of Nevada. At the 2010 United States "
-                    "Census, Carson City had a population of 55,274.",
-                    "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that "
-                    "are a political division controlled by the United States. Its capital is Saipan.",
+                    "Carson City is the capital city of the American state of Nevada. At the 2010 United States Census, Carson City had a population of 55,274.",
+                    "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that are a political division controlled by the United States. Its capital is Saipan.",
                 ],
                 score_threshold=0.8,
             )

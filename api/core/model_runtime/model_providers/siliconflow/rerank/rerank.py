@@ -28,7 +28,6 @@ class SiliconflowRerankModel(RerankModel):
     ) -> RerankResult:
         if len(docs) == 0:
             return RerankResult(model=model, docs=[])
-
         base_url = credentials.get("base_url", "https://api.siliconflow.cn/v1")
         base_url = base_url.removesuffix("/")
         try:
@@ -39,17 +38,13 @@ class SiliconflowRerankModel(RerankModel):
             )
             response.raise_for_status()
             results = response.json()
-
             rerank_documents = []
             for result in results["results"]:
                 rerank_document = RerankDocument(
-                    index=result["index"],
-                    text=result["document"]["text"],
-                    score=result["relevance_score"],
+                    index=result["index"], text=result["document"]["text"], score=result["relevance_score"]
                 )
                 if score_threshold is None or result["relevance_score"] >= score_threshold:
                     rerank_documents.append(rerank_document)
-
             return RerankResult(model=model, docs=rerank_documents)
         except httpx.HTTPStatusError as e:
             raise InvokeServerUnavailableError(str(e))
@@ -61,10 +56,8 @@ class SiliconflowRerankModel(RerankModel):
                 credentials=credentials,
                 query="What is the capital of the United States?",
                 docs=[
-                    "Carson City is the capital city of the American state of Nevada. At the 2010 United States "
-                    "Census, Carson City had a population of 55,274.",
-                    "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that "
-                    "are a political division controlled by the United States. Its capital is Saipan.",
+                    "Carson City is the capital city of the American state of Nevada. At the 2010 United States Census, Carson City had a population of 55,274.",
+                    "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that are a political division controlled by the United States. Its capital is Saipan.",
                 ],
                 score_threshold=0.8,
             )

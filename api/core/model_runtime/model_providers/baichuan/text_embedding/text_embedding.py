@@ -2,11 +2,10 @@ import time
 from json import dumps
 from typing import Optional
 
-from requests import post
-
-from core.entities.embedding_type import EmbeddingInputType
 from core.model_runtime.entities.model_entities import PriceType
-from core.model_runtime.entities.text_embedding_entities import EmbeddingUsage, TextEmbeddingResult
+from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
+from core.entities.embedding_type import EmbeddingInputType
+from core.model_runtime.entities.text_embedding_entities import TextEmbeddingResult, EmbeddingUsage
 from core.model_runtime.errors.invoke import (
     InvokeAuthorizationError,
     InvokeBadRequestError,
@@ -16,9 +15,9 @@ from core.model_runtime.errors.invoke import (
     InvokeServerUnavailableError,
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
-from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
-from core.model_runtime.model_providers.baichuan.llm.baichuan_tokenizer import BaichuanTokenizer
-from core.model_runtime.model_providers.baichuan.llm.baichuan_turbo_errors import (
+from requests import post
+from ..llm.baichuan_tokenizer import BaichuanTokenizer
+from ..llm.baichuan_turbo_errors import (
     BadRequestError,
     InsufficientAccountBalanceError,
     InternalServerError,
@@ -58,28 +57,24 @@ class BaichuanTextEmbeddingModel(TextEmbeddingModel):
             raise ValueError("Invalid model name")
         if not api_key:
             raise CredentialsValidateFailedError("api_key is required")
-
-        # split into chunks of batch size 16
         chunks = []
         for i in range(0, len(texts), 16):
             chunks.append(texts[i : i + 16])
-
         embeddings = []
         token_usage = 0
-
         for chunk in chunks:
-            # embedding chunk
-            chunk_embeddings, chunk_usage = self.embedding(model=model, api_key=api_key, texts=chunk, user=user)
-
+            (chunk_embeddings, chunk_usage) = self.embedding(
+                model=model, api_key=api_key, texts=chunk, user=user
+            )
             embeddings.extend(chunk_embeddings)
             token_usage += chunk_usage
-
         result = TextEmbeddingResult(
             model=model,
             embeddings=embeddings,
-            usage=self._calc_response_usage(model=model, credentials=credentials, tokens=token_usage),
+            usage=self._calc_response_usage(
+                model=model, credentials=credentials, tokens=token_usage
+            ),
         )
-
         return result
 
     def embedding(
@@ -95,24 +90,24 @@ class BaichuanTextEmbeddingModel(TextEmbeddingModel):
         :return: embeddings result
         """
         url = self.api_base
-        headers = {"Authorization": "Bearer " + api_key, "Content-Type": "application/json"}
-
+        headers = {
+            "Authorization": "Bearer " + api_key,
+            "Content-Type": "application/json",
+        }
         data = {"model": "Baichuan-Text-Embedding", "input": texts}
-
         try:
             response = post(url, headers=headers, data=dumps(data))
         except Exception as e:
             raise InvokeConnectionError(str(e))
-
         if response.status_code != 200:
             try:
                 resp = response.json()
-                # try to parse error message
                 err = resp["error"]["code"]
                 msg = resp["error"]["message"]
             except Exception as e:
-                raise InternalServerError(f"Failed to convert response to json: {e} with text: {response.text}")
-
+                raise InternalServerError(
+                    f"Failed to convert response to json: {e} with text: {response.text}"
+                )
             if err == "invalid_api_key":
                 raise InvalidAPIKeyError(msg)
             elif err == "insufficient_quota":
@@ -127,29 +122,30 @@ class BaichuanTextEmbeddingModel(TextEmbeddingModel):
                 raise InvalidAPIKeyError(msg)
             else:
                 raise InternalServerError(f"Unknown error: {err} with message: {msg}")
-
         try:
             resp = response.json()
             embeddings = resp["data"]
             usage = resp["usage"]
         except Exception as e:
-            raise InternalServerError(f"Failed to convert response to json: {e} with text: {response.text}")
+            raise InternalServerError(
+                f"Failed to convert response to json: {e} with text: {response.text}"
+            )
+        return ([data["embedding"] for data in embeddings], usage["total_tokens"])
 
-        return [data["embedding"] for data in embeddings], usage["total_tokens"]
-
-    def get_num_tokens(self, model: str, credentials: dict, texts: list[str]) -> int:
+    def get_num_tokens(
+        self, model: str, credentials: dict, texts: list[str]
+    ) -> list[int]:
         """
         Get number of tokens for given prompt messages
 
         :param model: model name
         :param credentials: model credentials
         :param texts: texts to embed
-        :return:
+        :return: number of tokens for each text
         """
-        num_tokens = 0
+        num_tokens = []
         for text in texts:
-            # use BaichuanTokenizer to get num tokens
-            num_tokens += BaichuanTokenizer._get_num_tokens(text)
+            num_tokens.append(BaichuanTokenizer._get_num_tokens(text))
         return num_tokens
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
@@ -179,7 +175,9 @@ class BaichuanTextEmbeddingModel(TextEmbeddingModel):
             InvokeBadRequestError: [BadRequestError, KeyError],
         }
 
-    def _calc_response_usage(self, model: str, credentials: dict, tokens: int) -> EmbeddingUsage:
+    def _calc_response_usage(
+        self, model: str, credentials: dict, tokens: int
+    ) -> EmbeddingUsage:
         """
         Calculate response usage
 
@@ -188,12 +186,12 @@ class BaichuanTextEmbeddingModel(TextEmbeddingModel):
         :param tokens: input tokens
         :return: usage
         """
-        # get input price info
         input_price_info = self.get_price(
-            model=model, credentials=credentials, price_type=PriceType.INPUT, tokens=tokens
+            model=model,
+            credentials=credentials,
+            price_type=PriceType.INPUT,
+            tokens=tokens,
         )
-
-        # transform usage
         usage = EmbeddingUsage(
             tokens=tokens,
             total_tokens=tokens,
@@ -203,5 +201,4 @@ class BaichuanTextEmbeddingModel(TextEmbeddingModel):
             currency=input_price_info.currency,
             latency=time.perf_counter() - self.started_at,
         )
-
         return usage

@@ -22,6 +22,15 @@ from core.model_runtime.model_providers.__base.rerank_model import RerankModel
 from core.model_runtime.model_providers.__base.speech2text_model import Speech2TextModel
 from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
 from core.model_runtime.model_providers.__base.tts_model import TTSModel
+# NEW
+# from dify_plugin import ModelProvider
+# from dify_plugin.interfaces.model.ai_model import AIModel
+# from dify_plugin.interfaces.model.large_language_model import LargeLanguageModel
+# from dify_plugin.interfaces.model.moderation_model import ModerationModel
+# from dify_plugin.interfaces.model.rerank_model import RerankModel
+# from dify_plugin.interfaces.model.speech2text_model import Speech2TextModel
+# from dify_plugin.interfaces.model.text_embedding_model import TextEmbeddingModel
+# from dify_plugin.interfaces.model.tts_model import TTSModel
 from core.model_runtime.schema_validators.model_credential_schema_validator import ModelCredentialSchemaValidator
 from core.model_runtime.schema_validators.provider_credential_schema_validator import ProviderCredentialSchemaValidator
 from core.plugin.entities.plugin import ModelProviderID

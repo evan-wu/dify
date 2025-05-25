@@ -14,7 +14,7 @@ from core.model_runtime.model_providers.__base.speech2text_model import Speech2T
 from core.model_runtime.model_providers.tongyi._common import _CommonTongyi
 
 
-class OpenAISpeech2TextModel(_CommonTongyi, Speech2TextModel):
+class TongyiSpeech2TextModel(_CommonTongyi, Speech2TextModel):
     """
     Model class for OpenAI Speech to text model.
     """
@@ -64,7 +64,8 @@ class OpenAISpeech2TextModel(_CommonTongyi, Speech2TextModel):
         dashscope.api_key = api_key
 
         recognition = Recognition(
-            model='paraformer-realtime-v1',  # paraformer-realtime-v2(slow) >  paraformer-realtime-v1 > paraformer-realtime-8k-v2
+            model='paraformer-realtime-v1',
+            # paraformer-realtime-v2(slow) >  paraformer-realtime-v1 > paraformer-realtime-8k-v2
             format='mp3',
             sample_rate=16000,
             language_hints=["zh", "en"],  # “language_hints”只支持paraformer-realtime-v2模型
@@ -75,7 +76,7 @@ class OpenAISpeech2TextModel(_CommonTongyi, Speech2TextModel):
         temp_file_path = tempfile.mktemp()
         with open(temp_file_path, "wb") as f:
             f.write(file.read())
-        
+
         result = recognition.call(temp_file_path)
         os.remove(temp_file_path)
 

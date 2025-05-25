@@ -1,5 +1,4 @@
 import logging
-
 from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.model_provider import ModelProvider
@@ -18,8 +17,6 @@ class BaichuanProvider(ModelProvider):
         """
         try:
             model_instance = self.get_model_instance(ModelType.LLM)
-
-            # Use `baichuan2-turbo` model for validate,
             model_instance.validate_credentials(model="baichuan2-turbo", credentials=credentials)
         except CredentialsValidateFailedError as ex:
             raise ex

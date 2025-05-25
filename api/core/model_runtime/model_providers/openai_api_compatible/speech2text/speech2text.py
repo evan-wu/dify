@@ -75,4 +75,10 @@ class OAICompatSpeech2TextModel(_CommonOaiApiCompat, Speech2TextModel):
             parameter_rules=[],
         )
 
+        if "display_name" in credentials and credentials["display_name"] != "":
+            entity.label= I18nObject(
+                en_US=credentials["display_name"],
+                zh_Hans=credentials["display_name"]
+            )
+
         return entity

@@ -73,15 +73,15 @@ class AIModel(BaseModel):
                 if invoke_error == InvokeAuthorizationError:
                     return InvokeAuthorizationError(
                         description=(
-                            f"[{self.provider_name}] Incorrect model credentials provided, please check and try again."
+                            f"[{self.__class__}] Incorrect model credentials provided, please check and try again."
                         )
                     )
                 elif isinstance(invoke_error, InvokeError):
-                    return InvokeError(description=f"[{self.provider_name}] {invoke_error.description}, {str(error)}")
+                    return InvokeError(description=f"[{self.__class__}] {invoke_error.description}, {str(error)}")
                 else:
                     return error
 
-        return InvokeError(description=f"[{self.provider_name}] Error: {str(error)}")
+        return InvokeError(description=f"[{self.__class__}] Error: {str(error)}")
 
     def get_price(self, model: str, credentials: dict, price_type: PriceType, tokens: int) -> PriceInfo:
         """

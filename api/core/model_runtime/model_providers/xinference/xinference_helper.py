@@ -45,13 +45,17 @@ cache_lock = Lock()
 
 class XinferenceHelper:
     @staticmethod
-    def get_xinference_extra_parameter(server_url: str, model_uid: str, api_key: str) -> XinferenceModelExtraParameter:
+    def get_xinference_extra_parameter(
+        server_url: str, model_uid: str, api_key: str
+    ) -> XinferenceModelExtraParameter:
         XinferenceHelper._clean_cache()
         with cache_lock:
             if model_uid not in cache:
                 cache[model_uid] = {
                     "expires": time() + 300,
-                    "value": XinferenceHelper._get_xinference_extra_parameter(server_url, model_uid, api_key),
+                    "value": XinferenceHelper._get_xinference_extra_parameter(
+                        server_url, model_uid, api_key
+                    ),
                 }
             return cache[model_uid]["value"]
 
@@ -59,19 +63,30 @@ class XinferenceHelper:
     def _clean_cache() -> None:
         try:
             with cache_lock:
-                expired_keys = [model_uid for model_uid, model in cache.items() if model["expires"] < time()]
+                expired_keys = [
+                    model_uid
+                    for model_uid, model in cache.items()
+                    if model["expires"] < time()
+                ]
                 for model_uid in expired_keys:
                     del cache[model_uid]
         except RuntimeError as e:
             pass
 
     @staticmethod
-    def _get_xinference_extra_parameter(server_url: str, model_uid: str, api_key: str) -> XinferenceModelExtraParameter:
+    def _get_xinference_extra_parameter(
+        server_url: str, model_uid: str, api_key: str
+    ) -> XinferenceModelExtraParameter:
         """
         get xinference model extra parameter like model_format and model_handle_type
         """
 
-        if not model_uid or not model_uid.strip() or not server_url or not server_url.strip():
+        if (
+            not model_uid
+            or not model_uid.strip()
+            or not server_url
+            or not server_url.strip()
+        ):
             raise RuntimeError("model_uid is empty")
 
         url = str(URL(server_url) / "v1" / "models" / model_uid)
@@ -86,7 +101,9 @@ class XinferenceHelper:
         try:
             response = session.get(url, headers=headers, timeout=10)
         except (MissingSchema, ConnectionError, Timeout) as e:
-            raise RuntimeError(f"get xinference model extra parameter failed, url: {url}, error: {e}")
+            raise RuntimeError(
+                f"get xinference model extra parameter failed, url: {url}, error: {e}"
+            )
         if response.status_code != 200:
             raise RuntimeError(
                 f"get xinference model extra parameter failed, status code: {response.status_code},"

@@ -3,10 +3,10 @@ from typing import Optional
 from openai import OpenAI
 from openai.types import ModerationCreateResponse
 
-from core.model_runtime.entities.model_entities import ModelPropertyKey
+from core.model_runtime.entities import ModelPropertyKey
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.moderation_model import ModerationModel
-from core.model_runtime.model_providers.openai._common import _CommonOpenAI
+from ..common_openai import _CommonOpenAI
 
 
 class OpenAIModerationModel(_CommonOpenAI, ModerationModel):
@@ -14,7 +14,9 @@ class OpenAIModerationModel(_CommonOpenAI, ModerationModel):
     Model class for OpenAI text moderation model.
     """
 
-    def _invoke(self, model: str, credentials: dict, text: str, user: Optional[str] = None) -> bool:
+    def _invoke(self, model: str, credentials: dict,
+                text: str, user: Optional[str] = None) \
+            -> bool:
         """
         Invoke moderation model
 
@@ -32,10 +34,10 @@ class OpenAIModerationModel(_CommonOpenAI, ModerationModel):
 
         # chars per chunk
         length = self._get_max_characters_per_chunk(model, credentials)
-        text_chunks = [text[i : i + length] for i in range(0, len(text), length)]
+        text_chunks = [text[i:i + length] for i in range(0, len(text), length)]
 
         max_text_chunks = self._get_max_chunks(model, credentials)
-        chunks = [text_chunks[i : i + max_text_chunks] for i in range(0, len(text_chunks), max_text_chunks)]
+        chunks = [text_chunks[i:i + max_text_chunks] for i in range(0, len(text_chunks), max_text_chunks)]
 
         for text_chunk in chunks:
             moderation_result = self._moderation_invoke(model=model, client=client, texts=text_chunk)
@@ -63,7 +65,7 @@ class OpenAIModerationModel(_CommonOpenAI, ModerationModel):
             self._moderation_invoke(
                 model=model,
                 client=client,
-                texts=["ping"],
+                texts=['ping'],
             )
         except Exception as ex:
             raise CredentialsValidateFailedError(str(ex))

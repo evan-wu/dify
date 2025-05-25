@@ -3,15 +3,11 @@ from typing import Optional, Union
 
 from yarl import URL
 
-from core.model_runtime.entities.llm_entities import LLMMode, LLMResult
-from core.model_runtime.entities.message_entities import (
-    PromptMessage,
-    PromptMessageTool,
-)
-from core.model_runtime.model_providers.openai_api_compatible.llm.llm import OAIAPICompatLargeLanguageModel
+from core.model_runtime.entities import PromptMessage, LLMResult, PromptMessageTool, LLMMode
+from core.model_runtime.model_providers.openai_api_compatible.llm.llm import OAICompatLargeLanguageModel
 
 
-class DeepseekLargeLanguageModel(OAIAPICompatLargeLanguageModel):
+class DeepseekLargeLanguageModel(OAICompatLargeLanguageModel):
     def _invoke(
         self,
         model: str,
@@ -24,9 +20,6 @@ class DeepseekLargeLanguageModel(OAIAPICompatLargeLanguageModel):
         user: Optional[str] = None,
     ) -> Union[LLMResult, Generator]:
         self._add_custom_parameters(credentials)
-        # {"response_format": "xx"} need convert to {"response_format": {"type": "xx"}}
-        if "response_format" in model_parameters:
-            model_parameters["response_format"] = {"type": model_parameters.get("response_format")}
         return super()._invoke(model, credentials, prompt_messages, model_parameters, tools, stop, stream)
 
     def validate_credentials(self, model: str, credentials: dict) -> None:

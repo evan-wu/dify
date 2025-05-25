@@ -1,21 +1,28 @@
 import concurrent.futures
-from typing import Any, Optional
-
-from openai import OpenAI
-
-from core.model_runtime.errors.invoke import InvokeBadRequestError
+from typing import Any, Mapping, Optional
+from dify_plugin.interfaces.model.openai_compatible.common import _CommonOaiApiCompat
+from httpx import Timeout
+from core.model_runtime.errors.invoke import (
+    InvokeBadRequestError,
+)
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.tts_model import TTSModel
-from core.model_runtime.model_providers.openai._common import _CommonOpenAI
+from openai import OpenAI
 
 
-class SiliconFlowText2SpeechModel(_CommonOpenAI, TTSModel):
+class SiliconFlowText2SpeechModel(_CommonOaiApiCompat, TTSModel):
     """
     Model class for SiliconFlow Speech to text model.
     """
 
     def _invoke(
-        self, model: str, tenant_id: str, credentials: dict, content_text: str, voice: str, user: Optional[str] = None
+        self,
+        model: str,
+        tenant_id: str,
+        credentials: dict,
+        content_text: str,
+        voice: str,
+        user: Optional[str] = None,
     ) -> Any:
         """
         _invoke text2speech model
@@ -28,14 +35,14 @@ class SiliconFlowText2SpeechModel(_CommonOpenAI, TTSModel):
         :param user: unique user id
         :return: text translated to audio file
         """
-        if not voice or voice not in [
-            d["value"] for d in self.get_tts_model_voices(model=model, credentials=credentials)
-        ]:
+        voices = self.get_tts_model_voices(model=model, credentials=credentials) or []
+        if not voice or voice not in [d["value"] for d in voices]:
             voice = self._get_model_default_voice(model, credentials)
-        # if streaming:
-        return self._tts_invoke_streaming(model=model, credentials=credentials, content_text=content_text, voice=voice)
+        return self._tts_invoke_streaming(
+            model=model, credentials=credentials, content_text=content_text, voice=voice
+        )
 
-    def validate_credentials(self, model: str, credentials: dict, user: Optional[str] = None) -> None:
+    def validate_credentials(self, model: str, credentials: Mapping) -> None:
         """
         validate credentials text2speech model
 
@@ -54,7 +61,9 @@ class SiliconFlowText2SpeechModel(_CommonOpenAI, TTSModel):
         except Exception as ex:
             raise CredentialsValidateFailedError(str(ex))
 
-    def _tts_invoke_streaming(self, model: str, credentials: dict, content_text: str, voice: str) -> Any:
+    def _tts_invoke_streaming(
+        self, model: str, credentials: Mapping, content_text: str, voice: str
+    ) -> Any:
         """
         _tts_invoke_streaming text2speech model
 
@@ -64,19 +73,24 @@ class SiliconFlowText2SpeechModel(_CommonOpenAI, TTSModel):
         :param voice: model timbre
         :return: text translated to audio file
         """
+        credentials = dict(credentials)
         try:
-            # doc: https://docs.siliconflow.cn/capabilities/text-to-speech
             self._add_custom_parameters(credentials)
             credentials_kwargs = self._to_credential_kwargs(credentials)
             client = OpenAI(**credentials_kwargs)
-            model_support_voice = [
-                x.get("value") for x in self.get_tts_model_voices(model=model, credentials=credentials)
-            ]
+            voices = (
+                self.get_tts_model_voices(model=model, credentials=credentials) or []
+            )
+            model_support_voice = [x.get("value") for x in voices]
             if not voice or voice not in model_support_voice:
                 voice = self._get_model_default_voice(model, credentials)
             if len(content_text) > 4096:
-                sentences = self._split_text_into_sentences(content_text, max_length=4096)
-                executor = concurrent.futures.ThreadPoolExecutor(max_workers=min(3, len(sentences)))
+                sentences = self._split_text_into_sentences(
+                    content_text, max_length=4096
+                )
+                executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=min(3, len(sentences))
+                )
                 futures = [
                     executor.submit(
                         client.audio.speech.with_streaming_response.create,
@@ -88,14 +102,15 @@ class SiliconFlowText2SpeechModel(_CommonOpenAI, TTSModel):
                     for i in range(len(sentences))
                 ]
                 for future in futures:
-                    yield from future.result().__enter__().iter_bytes(1024)  # noqa:PLC2801
-
+                    yield from future.result().__enter__().iter_bytes(1024)
             else:
                 response = client.audio.speech.with_streaming_response.create(
-                    model=model, voice=voice, response_format="mp3", input=content_text.strip()
+                    model=model,
+                    voice=voice,
+                    response_format="mp3",
+                    input=content_text.strip(),
                 )
-
-                yield from response.__enter__().iter_bytes(1024)  # noqa:PLC2801
+                yield from response.__enter__().iter_bytes(1024)
         except Exception as ex:
             raise InvokeBadRequestError(str(ex))
 
@@ -103,3 +118,25 @@ class SiliconFlowText2SpeechModel(_CommonOpenAI, TTSModel):
     def _add_custom_parameters(cls, credentials: dict) -> None:
         credentials["openai_api_base"] = "https://api.siliconflow.cn"
         credentials["openai_api_key"] = credentials["api_key"]
+
+    def _to_credential_kwargs(self, credentials: Mapping) -> dict:
+        """
+        Transform credentials to kwargs for model instance
+
+        :param credentials:
+        :return:
+        """
+        credentials_kwargs = {
+            "api_key": credentials["openai_api_key"],
+            "timeout": Timeout(315.0, read=300.0, write=10.0, connect=5.0),
+            "max_retries": 1,
+        }
+
+        if credentials.get("openai_api_base"):
+            openai_api_base = credentials["openai_api_base"].rstrip("/")
+            credentials_kwargs["base_url"] = openai_api_base + "/v1"
+
+        if "openai_organization" in credentials:
+            credentials_kwargs["organization"] = credentials["openai_organization"]
+
+        return credentials_kwargs

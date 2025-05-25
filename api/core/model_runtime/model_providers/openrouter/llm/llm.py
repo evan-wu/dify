@@ -1,13 +1,22 @@
 from collections.abc import Generator
 from typing import Optional, Union
 
-from core.model_runtime.entities.llm_entities import LLMResult, LLMResultChunk, LLMResultChunkDelta
-from core.model_runtime.entities.message_entities import PromptMessage, PromptMessageTool
-from core.model_runtime.entities.model_entities import AIModelEntity
-from core.model_runtime.model_providers.openai_api_compatible.llm.llm import OAIAPICompatLargeLanguageModel
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+)
+from core.model_runtime.entities import (
+    LLMResult,
+    LLMResultChunk,
+    LLMResultChunkDelta,
+)
+from core.model_runtime.entities import (
+    PromptMessage,
+    PromptMessageTool,
+)
+from core.model_runtime.model_providers.openai_api_compatible.llm.llm import OAICompatLargeLanguageModel
 
 
-class OpenRouterLargeLanguageModel(OAIAPICompatLargeLanguageModel):
+class OpenRouterLargeLanguageModel(OAICompatLargeLanguageModel):
     def _update_credential(self, model: str, credentials: dict):
         credentials["endpoint_url"] = "https://openrouter.ai/api/v1"
         credentials["mode"] = self.get_model_mode(model).value
@@ -25,12 +34,10 @@ class OpenRouterLargeLanguageModel(OAIAPICompatLargeLanguageModel):
         user: Optional[str] = None,
     ) -> Union[LLMResult, Generator]:
         self._update_credential(model, credentials)
-
         return self._generate(model, credentials, prompt_messages, model_parameters, tools, stop, stream, user)
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
         self._update_credential(model, credentials)
-
         return super().validate_credentials(model, credentials)
 
     def _generate(
@@ -58,7 +65,6 @@ class OpenRouterLargeLanguageModel(OAIAPICompatLargeLanguageModel):
         user: Optional[str] = None,
     ) -> Generator:
         resp = super()._generate(model, credentials, prompt_messages, model_parameters, tools, stop, False, user)
-
         yield LLMResultChunk(
             model=model,
             prompt_messages=prompt_messages,
@@ -77,7 +83,6 @@ class OpenRouterLargeLanguageModel(OAIAPICompatLargeLanguageModel):
 
     def get_customizable_model_schema(self, model: str, credentials: dict) -> AIModelEntity:
         self._update_credential(model, credentials)
-
         return super().get_customizable_model_schema(model, credentials)
 
     def get_num_tokens(
@@ -88,5 +93,4 @@ class OpenRouterLargeLanguageModel(OAIAPICompatLargeLanguageModel):
         tools: Optional[list[PromptMessageTool]] = None,
     ) -> int:
         self._update_credential(model, credentials)
-
         return super().get_num_tokens(model, credentials, prompt_messages, tools)

@@ -133,9 +133,10 @@ class OAICompatRerankModel(RerankModel):
                     "are a political division controlled by the United States. Its capital is Saipan.",
                 ],
                 score_threshold=0.8,
+                top_n=3,
             )
         except Exception as ex:
-            raise CredentialsValidateFailedError(str(ex))
+            raise CredentialsValidateFailedError(str(ex)) from ex
 
     @property
     def _invoke_error_mapping(self) -> dict[type[InvokeError], list[type[Exception]]]:

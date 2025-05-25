@@ -1,26 +1,38 @@
+import json
 from collections.abc import Generator
 from typing import Optional, Union
-
-from zhipuai import ZhipuAI
-from zhipuai.types.chat.chat_completion import Completion
-from zhipuai.types.chat.chat_completion_chunk import ChatCompletionChunk
-
-from core.model_runtime.entities.llm_entities import LLMResult, LLMResultChunk, LLMResultChunkDelta
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.entities import (
+    LLMResult,
+    LLMResultChunk,
+    LLMResultChunkDelta,
+    PromptMessageRole,
+)
+from dify_plugin.entities.model.message import (
+    AssistantPromptMessage,
+    PromptMessage,
+    PromptMessageContentType,
+    SystemPromptMessage,
+    ToolPromptMessage,
+    UserPromptMessage,
+)
+from core.model_runtime.entities import (
     AssistantPromptMessage,
     PromptMessage,
     PromptMessageContent,
     PromptMessageContentType,
-    PromptMessageRole,
     PromptMessageTool,
     SystemPromptMessage,
     ToolPromptMessage,
     UserPromptMessage,
 )
+
+from zhipuai import ZhipuAI
+from zhipuai.types.chat.chat_completion import Completion
+from zhipuai.types.chat.chat_completion_chunk import ChatCompletionChunk
+
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
-from core.model_runtime.model_providers.zhipuai._common import _CommonZhipuaiAI
-from core.model_runtime.utils import helper
+from .._common import _CommonZhipuaiAI
 
 
 class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
@@ -48,11 +60,17 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         :param user: unique user id
         :return: full response or stream response chunk generator result
         """
-        # transform credentials to kwargs for model instance
         credentials_kwargs = self._to_credential_kwargs(credentials)
-
-        # invoke model
-        return self._generate(model, credentials_kwargs, prompt_messages, model_parameters, tools, stop, stream, user)
+        return self._generate(
+            model,
+            credentials_kwargs,
+            prompt_messages,
+            model_parameters,
+            tools,
+            stop,
+            stream,
+            user,
+        )
 
     def get_num_tokens(
         self,
@@ -71,7 +89,6 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         :return:
         """
         prompt = self._convert_messages_to_prompt(prompt_messages, tools)
-
         return self._get_num_tokens_by_gpt2(prompt)
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
@@ -83,17 +100,12 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         :return:
         """
         try:
-            # transform credentials to kwargs for model instance
             credentials_kwargs = self._to_credential_kwargs(credentials)
             self._generate(
                 model=model,
                 credentials_kwargs=credentials_kwargs,
-                prompt_messages=[
-                    UserPromptMessage(content="ping"),
-                ],
-                model_parameters={
-                    "temperature": 0.5,
-                },
+                prompt_messages=[UserPromptMessage(content="ping")],
+                model_parameters={"temperature": 0.5},
                 tools=[],
                 stream=False,
             )
@@ -127,69 +139,96 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         # request to glm-4v-plus with stop words will always respond "finish_reason":"network_error"
         if stop and model != "glm-4v-plus":
             extra_model_kwargs["stop"] = stop
-
         client = ZhipuAI(api_key=credentials_kwargs["api_key"])
-
         if len(prompt_messages) == 0:
             raise ValueError("At least one message is required")
-
         if prompt_messages[0].role == PromptMessageRole.SYSTEM:
             if not prompt_messages[0].content:
                 prompt_messages = prompt_messages[1:]
-
-        # resolve zhipuai model not support system message and user message, assistant message must be in sequence
         new_prompt_messages: list[PromptMessage] = []
         for prompt_message in prompt_messages:
             copy_prompt_message = prompt_message.model_copy()
-            if copy_prompt_message.role in {PromptMessageRole.USER, PromptMessageRole.SYSTEM, PromptMessageRole.TOOL}:
+            if copy_prompt_message.role in {
+                PromptMessageRole.USER,
+                PromptMessageRole.SYSTEM,
+                PromptMessageRole.TOOL,
+            }:
                 if isinstance(copy_prompt_message.content, list):
-                    # check if model is 'glm-4v'
-                    if not model.startswith("glm-4v"):
-                        # not support list message
+                    if model not in {"glm-4v", "glm-4v-plus", "glm-4v-flash"}:
                         continue
-                    # get image and
                     if not isinstance(copy_prompt_message, UserPromptMessage):
-                        # not support system message
                         continue
                     new_prompt_messages.append(copy_prompt_message)
-
                 if not isinstance(copy_prompt_message.content, str):
-                    # not support image message
                     continue
-
                 if (
                     new_prompt_messages
                     and new_prompt_messages[-1].role == PromptMessageRole.USER
-                    and copy_prompt_message.role == PromptMessageRole.USER
+                    and (copy_prompt_message.role == PromptMessageRole.USER)
                 ):
-                    new_prompt_messages[-1].content += "\n\n" + copy_prompt_message.content
-                else:
-                    if copy_prompt_message.role in {PromptMessageRole.USER, PromptMessageRole.TOOL}:
-                        new_prompt_messages.append(copy_prompt_message)
-                    elif copy_prompt_message.role == PromptMessageRole.SYSTEM:
-                        new_prompt_message = SystemPromptMessage(content=copy_prompt_message.content)
-                        new_prompt_messages.append(new_prompt_message)
-                    else:
-                        new_prompt_message = UserPromptMessage(content=copy_prompt_message.content)
-                        new_prompt_messages.append(new_prompt_message)
-            else:
-                if new_prompt_messages and new_prompt_messages[-1].role == PromptMessageRole.ASSISTANT:
-                    new_prompt_messages[-1].content += "\n\n" + copy_prompt_message.content
-                else:
+                    new_prompt_messages[-1].content += (
+                        "\n\n" + copy_prompt_message.content
+                    )
+                elif copy_prompt_message.role in {
+                    PromptMessageRole.USER,
+                    PromptMessageRole.TOOL,
+                }:
                     new_prompt_messages.append(copy_prompt_message)
-
-        # zhipuai moved web_search param to tools
+                elif copy_prompt_message.role == PromptMessageRole.SYSTEM:
+                    new_prompt_message = SystemPromptMessage(
+                        content=copy_prompt_message.content
+                    )
+                    new_prompt_messages.append(new_prompt_message)
+                else:
+                    new_prompt_message = UserPromptMessage(
+                        content=copy_prompt_message.content
+                    )
+                    new_prompt_messages.append(new_prompt_message)
+            elif (
+                new_prompt_messages
+                and new_prompt_messages[-1].role == PromptMessageRole.ASSISTANT
+            ):
+                new_prompt_messages[-1].content += "\n\n" + copy_prompt_message.content
+            else:
+                new_prompt_messages.append(copy_prompt_message)
         if "web_search" in model_parameters:
             enable_web_search = model_parameters.get("web_search")
             model_parameters.pop("web_search")
-            web_search_params = {"type": "web_search", "web_search": {"enable": enable_web_search}}
+            web_search_params = {
+                "type": "web_search",
+                "web_search": {"enable": enable_web_search},
+            }
             if "tools" in model_parameters:
                 model_parameters["tools"].append(web_search_params)
             else:
                 model_parameters["tools"] = [web_search_params]
 
-        if model.startswith("glm-4v"):
-            params = self._construct_glm_4v_parameter(model, new_prompt_messages, model_parameters)
+        if "response_format" in model_parameters:
+            response_format = model_parameters.get("response_format")
+            if response_format == "json_schema":
+                json_schema = model_parameters.get("json_schema")
+                if not json_schema:
+                    raise ValueError(
+                        "Must define JSON Schema when the response format is json_schema"
+                    )
+                try:
+                    schema = json.loads(json_schema)
+                except:
+                    raise ValueError(f"not correct json_schema format: {json_schema}")
+                model_parameters.pop("json_schema")
+                model_parameters["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": schema,
+                }
+            else:
+                model_parameters["response_format"] = {"type": response_format}
+        elif "json_schema" in model_parameters:
+            del model_parameters["json_schema"]
+
+        if model in {"glm-4v", "glm-4v-plus", "glm-4v-flash"}:
+            params = self._construct_glm_4v_parameter(
+                model, new_prompt_messages, model_parameters
+            )
         else:
             params = {"model": model, "messages": [], **model_parameters}
             for prompt_message in new_prompt_messages:
@@ -221,31 +260,48 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
                             }
                         )
                     else:
-                        params["messages"].append({"role": "assistant", "content": prompt_message.content})
+                        params["messages"].append(
+                            {"role": "assistant", "content": prompt_message.content}
+                        )
                 else:
-                    params["messages"].append({"role": prompt_message.role.value, "content": prompt_message.content})
-
+                    params["messages"].append(
+                        {
+                            "role": prompt_message.role.value,
+                            "content": prompt_message.content,
+                        }
+                    )
         if tools and len(tools) > 0:
-            params["tools"] = [{"type": "function", "function": helper.dump_model(tool)} for tool in tools]
-
+            params["tools"] = [
+                {"type": "function", "function": tool.model_dump()} for tool in tools
+            ]
         if stream:
-            response = client.chat.completions.create(stream=stream, **params, **extra_model_kwargs)
-            return self._handle_generate_stream_response(model, credentials_kwargs, tools, response, prompt_messages)
-
+            response = client.chat.completions.create(
+                stream=stream, **params, **extra_model_kwargs
+            )
+            return self._handle_generate_stream_response(
+                model, credentials_kwargs, tools, response, prompt_messages
+            )
         response = client.chat.completions.create(**params, **extra_model_kwargs)
-        return self._handle_generate_response(model, credentials_kwargs, tools, response, prompt_messages)
+        return self._handle_generate_response(
+            model, credentials_kwargs, tools, response, prompt_messages
+        )
 
-    def _construct_glm_4v_parameter(self, model: str, prompt_messages: list[PromptMessage], model_parameters: dict):
+    def _construct_glm_4v_parameter(
+        self, model: str, prompt_messages: list[PromptMessage], model_parameters: dict
+    ):
         messages = [
-            {"role": message.role.value, "content": self._construct_glm_4v_messages(message.content)}
+            {
+                "role": message.role.value,
+                "content": self._construct_glm_4v_messages(message.content),
+            }
             for message in prompt_messages
         ]
-
         params = {"model": model, "messages": messages, **model_parameters}
-
         return params
 
-    def _construct_glm_4v_messages(self, prompt_message: Union[str, list[PromptMessageContent]]) -> list[dict]:
+    def _construct_glm_4v_messages(
+        self, prompt_message: Union[str, list[PromptMessageContent]]
+    ) -> list[dict]:
         if isinstance(prompt_message, list):
             sub_messages = []
             for item in prompt_message:
@@ -273,7 +329,6 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         if file_content.startswith("data:"):
             data_split = file_content.split(";base64,")
             return data_split[1]
-
         return file_content
 
     def _handle_generate_response(
@@ -308,23 +363,20 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
                                 ),
                             )
                         )
-
             text += choice.message.content or ""
-
         prompt_usage = response.usage.prompt_tokens
         completion_usage = response.usage.completion_tokens
-
-        # transform usage
-        usage = self._calc_response_usage(model, credentials, prompt_usage, completion_usage)
-
-        # transform response
+        usage = self._calc_response_usage(
+            model, credentials, prompt_usage, completion_usage
+        )
         result = LLMResult(
             model=model,
             prompt_messages=prompt_messages,
-            message=AssistantPromptMessage(content=text, tool_calls=assistant_tool_calls),
+            message=AssistantPromptMessage(
+                content=text, tool_calls=assistant_tool_calls
+            ),
             usage=usage,
         )
-
         return result
 
     def _handle_generate_stream_response(
@@ -347,12 +399,11 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         for chunk in responses:
             if len(chunk.choices) == 0:
                 continue
-
             delta = chunk.choices[0]
-
-            if delta.finish_reason is None and (delta.delta.content is None or delta.delta.content == ""):
+            if delta.finish_reason is None and (
+                delta.delta.content is None or delta.delta.content == ""
+            ):
                 continue
-
             assistant_tool_calls: list[AssistantPromptMessage.ToolCall] = []
             for tool_call in delta.delta.tool_calls or []:
                 if tool_call.type == "function":
@@ -366,21 +417,16 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
                             ),
                         )
                     )
-
-            # transform assistant message to prompt message
             assistant_prompt_message = AssistantPromptMessage(
                 content=delta.delta.content or "", tool_calls=assistant_tool_calls
             )
-
             full_assistant_content += delta.delta.content or ""
-
             if delta.finish_reason is not None and chunk.usage is not None:
                 completion_tokens = chunk.usage.completion_tokens
                 prompt_tokens = chunk.usage.prompt_tokens
-
-                # transform usage
-                usage = self._calc_response_usage(model, credentials, prompt_tokens, completion_tokens)
-
+                usage = self._calc_response_usage(
+                    model, credentials, prompt_tokens, completion_tokens
+                )
                 yield LLMResultChunk(
                     model=chunk.model,
                     prompt_messages=prompt_messages,
@@ -398,7 +444,9 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
                     prompt_messages=prompt_messages,
                     system_fingerprint="",
                     delta=LLMResultChunkDelta(
-                        index=delta.index, message=assistant_prompt_message, finish_reason=delta.finish_reason
+                        index=delta.index,
+                        message=assistant_prompt_message,
+                        finish_reason=delta.finish_reason,
                     ),
                 )
 
@@ -412,9 +460,6 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
         human_prompt = "\n\nHuman:"
         ai_prompt = "\n\nAssistant:"
         content = message.content
-        if isinstance(content, list):
-            content = "".join(c.data for c in content if c.type == PromptMessageContentType.TEXT)
-
         if isinstance(message, UserPromptMessage):
             message_text = f"{human_prompt} {content}"
         elif isinstance(message, AssistantPromptMessage):
@@ -423,24 +468,23 @@ class ZhipuAILargeLanguageModel(_CommonZhipuaiAI, LargeLanguageModel):
             message_text = content
         else:
             raise ValueError(f"Got unknown type {message}")
-
         return message_text
 
     def _convert_messages_to_prompt(
-        self, messages: list[PromptMessage], tools: Optional[list[PromptMessageTool]] = None
+        self,
+        messages: list[PromptMessage],
+        tools: Optional[list[PromptMessageTool]] = None,
     ) -> str:
         """
         :param messages: List of PromptMessage to combine.
         :return: Combined string with necessary human_prompt and ai_prompt tags.
         """
-        messages = messages.copy()  # don't mutate the original list
-
-        text = "".join(self._convert_one_message_to_text(message) for message in messages)
-
+        messages = messages.copy()
+        text = "".join(
+            (self._convert_one_message_to_text(message) for message in messages)
+        )
         if tools and len(tools) > 0:
             text += "\n\nTools:"
             for tool in tools:
                 text += f"\n{tool.model_dump_json()}"
-
-        # trim off the trailing ' ' that might come from the "Assistant: "
         return text.rstrip()

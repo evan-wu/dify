@@ -1,5 +1,4 @@
 import logging
-
 from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.model_provider import ModelProvider
@@ -17,7 +16,6 @@ class StepfunProvider(ModelProvider):
         """
         try:
             model_instance = self.get_model_instance(ModelType.LLM)
-
             model_instance.validate_credentials(model="step-1-8k", credentials=credentials)
         except CredentialsValidateFailedError as ex:
             raise ex

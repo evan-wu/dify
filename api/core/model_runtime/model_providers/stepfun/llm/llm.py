@@ -1,12 +1,26 @@
 import json
 from collections.abc import Generator
 from typing import Optional, Union, cast
-
 import requests
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+    FetchFrom,
+    I18nObject,
+    ModelFeature,
+    ModelPropertyKey,
+    ModelType,
+    ParameterRule,
+    ParameterType,
+)
 
-from core.model_runtime.entities.common_entities import I18nObject
-from core.model_runtime.entities.llm_entities import LLMMode, LLMResult, LLMResultChunk, LLMResultChunkDelta
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.entities import (
+    LLMMode,
+    LLMResult,
+    LLMResultChunk,
+    LLMResultChunkDelta,
+)
+
+from core.model_runtime.entities import (
     AssistantPromptMessage,
     ImagePromptMessageContent,
     PromptMessage,
@@ -17,19 +31,10 @@ from core.model_runtime.entities.message_entities import (
     ToolPromptMessage,
     UserPromptMessage,
 )
-from core.model_runtime.entities.model_entities import (
-    AIModelEntity,
-    FetchFrom,
-    ModelFeature,
-    ModelPropertyKey,
-    ModelType,
-    ParameterRule,
-    ParameterType,
-)
-from core.model_runtime.model_providers.openai_api_compatible.llm.llm import OAIAPICompatLargeLanguageModel
+from core.model_runtime.model_providers.openai_api_compatible.llm.llm import OAICompatLargeLanguageModel
 
 
-class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
+class StepfunLargeLanguageModel(OAICompatLargeLanguageModel):
     def _invoke(
         self,
         model: str,
@@ -116,12 +121,7 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
                         sub_messages.append(sub_message_dict)
                     elif message_content.type == PromptMessageContentType.IMAGE:
                         message_content = cast(ImagePromptMessageContent, message_content)
-                        sub_message_dict = {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": message_content.data,
-                            },
-                        }
+                        sub_message_dict = {"type": "image_url", "image_url": {"url": message_content.data}}
                         sub_messages.append(sub_message_dict)
                 message_dict = {"role": "user", "content": sub_messages}
         elif isinstance(message, AssistantPromptMessage):
@@ -148,10 +148,8 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
             message_dict = {"role": "system", "content": message.content}
         else:
             raise ValueError(f"Got unknown type {message}")
-
         if message.name:
             message_dict["name"] = message.name
-
         return message_dict
 
     def _extract_response_tool_calls(self, response_tool_calls: list[dict]) -> list[AssistantPromptMessage.ToolCall]:
@@ -172,14 +170,12 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
                     if response_tool_call.get("function", {}).get("arguments")
                     else "",
                 )
-
                 tool_call = AssistantPromptMessage.ToolCall(
                     id=response_tool_call["id"] if response_tool_call.get("id") else "",
                     type=response_tool_call["type"] if response_tool_call.get("type") else "",
                     function=function,
                 )
                 tool_calls.append(tool_call)
-
         return tool_calls
 
     def _handle_generate_stream_response(
@@ -200,13 +196,9 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
         def create_final_llm_result_chunk(
             index: int, message: AssistantPromptMessage, finish_reason: str
         ) -> LLMResultChunk:
-            # calculate num tokens
             prompt_tokens = self._num_tokens_from_string(model, prompt_messages[0].content)
             completion_tokens = self._num_tokens_from_string(model, full_assistant_content)
-
-            # transform usage
             usage = self._calc_response_usage(model, credentials, prompt_tokens, completion_tokens)
-
             return LLMResultChunk(
                 model=model,
                 prompt_messages=prompt_messages,
@@ -220,7 +212,6 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
             def get_tool_call(tool_name: str):
                 if not tool_name:
                     return tools_calls[-1]
-
                 tool_call = next((tool_call for tool_call in tools_calls if tool_call.function.name == tool_name), None)
                 if tool_call is None:
                     tool_call = AssistantPromptMessage.ToolCall(
@@ -229,13 +220,10 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
                         function=AssistantPromptMessage.ToolCall.ToolCallFunction(name=tool_name, arguments=""),
                     )
                     tools_calls.append(tool_call)
-
                 return tool_call
 
             for new_tool_call in new_tool_calls:
-                # get tool call
                 tool_call = get_tool_call(new_tool_call.function.name)
-                # update tool call
                 if new_tool_call.id:
                     tool_call.id = new_tool_call.id
                 if new_tool_call.type:
@@ -247,14 +235,12 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
 
         for chunk in response.iter_lines(decode_unicode=True, delimiter="\n\n"):
             if chunk:
-                # ignore sse comments
                 if chunk.startswith(":"):
                     continue
-                decoded_chunk = chunk.strip().removeprefix("data: ")
+                decoded_chunk = chunk.strip().lstrip("data: ").lstrip()
                 chunk_json = None
                 try:
                     chunk_json = json.loads(decoded_chunk)
-                # stream ended
                 except json.JSONDecodeError as e:
                     yield create_final_llm_result_chunk(
                         index=chunk_index + 1,
@@ -264,65 +250,44 @@ class StepfunLargeLanguageModel(OAIAPICompatLargeLanguageModel):
                     break
                 if not chunk_json or len(chunk_json["choices"]) == 0:
                     continue
-
                 choice = chunk_json["choices"][0]
                 finish_reason = chunk_json["choices"][0].get("finish_reason")
                 chunk_index += 1
-
                 if "delta" in choice:
                     delta = choice["delta"]
                     delta_content = delta.get("content")
-
                     assistant_message_tool_calls = delta.get("tool_calls", None)
-                    # assistant_message_function_call = delta.delta.function_call
-
-                    # extract tool calls from response
                     if assistant_message_tool_calls:
                         tool_calls = self._extract_response_tool_calls(assistant_message_tool_calls)
                         increase_tool_call(tool_calls)
-
                     if delta_content is None or delta_content == "":
                         continue
-
-                    # transform assistant message to prompt message
                     assistant_prompt_message = AssistantPromptMessage(
                         content=delta_content, tool_calls=tool_calls if assistant_message_tool_calls else []
                     )
-
                     full_assistant_content += delta_content
                 elif "text" in choice:
                     choice_text = choice.get("text", "")
                     if choice_text == "":
                         continue
-
-                    # transform assistant message to prompt message
                     assistant_prompt_message = AssistantPromptMessage(content=choice_text)
                     full_assistant_content += choice_text
                 else:
                     continue
-
-                # check payload indicator for completion
                 yield LLMResultChunk(
                     model=model,
                     prompt_messages=prompt_messages,
-                    delta=LLMResultChunkDelta(
-                        index=chunk_index,
-                        message=assistant_prompt_message,
-                    ),
+                    delta=LLMResultChunkDelta(index=chunk_index, message=assistant_prompt_message),
                 )
-
             chunk_index += 1
-
         if tools_calls:
             yield LLMResultChunk(
                 model=model,
                 prompt_messages=prompt_messages,
                 delta=LLMResultChunkDelta(
-                    index=chunk_index,
-                    message=AssistantPromptMessage(tool_calls=tools_calls, content=""),
+                    index=chunk_index, message=AssistantPromptMessage(tool_calls=tools_calls, content="")
                 ),
             )
-
         yield create_final_llm_result_chunk(
             index=chunk_index, message=AssistantPromptMessage(content=""), finish_reason=finish_reason
         )

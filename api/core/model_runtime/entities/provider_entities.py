@@ -1,11 +1,15 @@
+import glob
+import os
 from collections.abc import Sequence
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from core.model_runtime.entities.common_entities import I18nObject
 from core.model_runtime.entities.model_entities import AIModelEntity, ModelType
+
+from dify_plugin.core.utils.yaml_loader import load_yaml_file
 
 
 class ConfigurateMethod(Enum):
@@ -113,6 +117,19 @@ class ProviderHelpEntity(BaseModel):
     url: I18nObject
 
 
+class ModelPosition(BaseModel):
+    """
+    Model class for ai models
+    """
+
+    llm: Optional[list[str]] = Field(default_factory=list)
+    text_embedding: Optional[list[str]] = Field(default_factory=list)
+    rerank: Optional[list[str]] = Field(default_factory=list)
+    tts: Optional[list[str]] = Field(default_factory=list)
+    speech2text: Optional[list[str]] = Field(default_factory=list)
+    moderation: Optional[list[str]] = Field(default_factory=list)
+
+
 class ProviderEntity(BaseModel):
     """
     Model class for provider.
@@ -130,20 +147,53 @@ class ProviderEntity(BaseModel):
     models: list[AIModelEntity] = Field(default_factory=list)
     provider_credential_schema: Optional[ProviderCredentialSchema] = None
     model_credential_schema: Optional[ModelCredentialSchema] = None
+    position: Optional[ModelPosition] = None
 
     # pydantic configs
     model_config = ConfigDict(protected_namespaces=())
 
-    # position from plugin _position.yaml
-    position: Optional[dict[str, list[str]]] = {}
-
-    @field_validator("models", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def validate_models(cls, v):
-        # returns EmptyList if v is empty
-        if not v:
-            return []
-        return v
+    def validate_models(cls, values) -> dict:
+        value = values.get("models", {})
+        if not isinstance(value, dict):
+            raise ValueError("models should be a glob path list")
+
+        cwd = os.getcwd()
+
+        model_entities = []
+
+        def load_models(model_type: str):
+            if model_type not in value:
+                return
+
+            for path in value[model_type].get("predefined", []):
+                yaml_paths = glob.glob(os.path.join(cwd, path))
+                for yaml_path in yaml_paths:
+                    if yaml_path.endswith("_position.yaml"):
+                        if "position" not in values:
+                            values["position"] = {}
+
+                        position = load_yaml_file(yaml_path)
+                        values["position"][model_type] = position
+                    else:
+                        model_entity = load_yaml_file(yaml_path)
+                        if not model_entity:
+                            raise ValueError(f"Error loading model entity: {yaml_path}")
+
+                        provider_model = AIModelEntity(**model_entity)
+                        model_entities.append(provider_model)
+
+        load_models("llm")
+        load_models("text_embedding")
+        load_models("rerank")
+        load_models("tts")
+        load_models("speech2text")
+        load_models("moderation")
+
+        values["models"] = model_entities
+
+        return values
 
     def to_simple_provider(self) -> SimpleProviderEntity:
         """

@@ -1,4 +1,4 @@
-from core.model_runtime.model_providers.volcengine_maas.legacy.volc_sdk import MaasError
+from .volc_sdk import MaasError
 
 
 class ClientSDKRequestError(MaasError):
@@ -152,5 +152,6 @@ ErrorCodeMap = {
 
 def wrap_error(e: MaasError) -> Exception:
     if ErrorCodeMap.get(e.code):
-        return ErrorCodeMap.get(e.code)(e.code_n, e.code, e.message, e.req_id)
+        # FIXME: mypy type error, try to fix it instead of using type: ignore
+        return ErrorCodeMap.get(e.code)(e.code_n, e.code, e.message, e.req_id)  # type: ignore
     return e

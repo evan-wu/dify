@@ -1,6 +1,5 @@
 from replicate.exceptions import ModelError, ReplicateError
-
-from core.model_runtime.errors.invoke import InvokeBadRequestError, InvokeError
+from dify_plugin.errors.model import InvokeBadRequestError, InvokeError
 
 
 class _CommonReplicate:

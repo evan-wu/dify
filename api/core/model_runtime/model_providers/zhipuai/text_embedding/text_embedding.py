@@ -1,14 +1,13 @@
 import time
 from typing import Optional
 
-from zhipuai import ZhipuAI
-
-from core.entities.embedding_type import EmbeddingInputType
 from core.model_runtime.entities.model_entities import PriceType
-from core.model_runtime.entities.text_embedding_entities import EmbeddingUsage, TextEmbeddingResult
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
-from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
-from core.model_runtime.model_providers.zhipuai._common import _CommonZhipuaiAI
+from core.entities.embedding_type import EmbeddingInputType
+from core.model_runtime.entities.text_embedding_entities import TextEmbeddingResult, EmbeddingUsage
+from zhipuai import ZhipuAI
+from .._common import _CommonZhipuaiAI
+from ...__base.text_embedding_model import TextEmbeddingModel
 
 
 class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
@@ -36,16 +35,14 @@ class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
         """
         credentials_kwargs = self._to_credential_kwargs(credentials)
         client = ZhipuAI(api_key=credentials_kwargs["api_key"])
-
-        embeddings, embedding_used_tokens = self.embed_documents(model, client, texts)
-
+        (embeddings, embedding_used_tokens) = self.embed_documents(model, client, texts)
         return TextEmbeddingResult(
             embeddings=embeddings,
             usage=self._calc_response_usage(model, credentials_kwargs, embedding_used_tokens),
             model=model,
         )
 
-    def get_num_tokens(self, model: str, credentials: dict, texts: list[str]) -> int:
+    def get_num_tokens(self, model: str, credentials: dict, texts: list[str]) -> list[int]:
         """
         Get number of tokens for given prompt messages
 
@@ -55,12 +52,10 @@ class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
         :return:
         """
         if len(texts) == 0:
-            return 0
-
-        total_num_tokens = 0
+            return []
+        total_num_tokens = []
         for text in texts:
-            total_num_tokens += self._get_num_tokens_by_gpt2(text)
-
+            total_num_tokens.append(self._get_num_tokens_by_gpt2(text))
         return total_num_tokens
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
@@ -72,16 +67,9 @@ class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
         :return:
         """
         try:
-            # transform credentials to kwargs for model instance
             credentials_kwargs = self._to_credential_kwargs(credentials)
             client = ZhipuAI(api_key=credentials_kwargs["api_key"])
-
-            # call embedding model
-            self.embed_documents(
-                model=model,
-                client=client,
-                texts=["ping"],
-            )
+            self.embed_documents(model=model, client=client, texts=["ping"])
         except Exception as ex:
             raise CredentialsValidateFailedError(str(ex))
 
@@ -96,14 +84,12 @@ class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
         """
         embeddings = []
         embedding_used_tokens = 0
-
         for text in texts:
             response = client.embeddings.create(model=model, input=text)
             data = response.data[0]
             embeddings.append(data.embedding)
             embedding_used_tokens += response.usage.total_tokens
-
-        return [list(map(float, e)) for e in embeddings], embedding_used_tokens
+        return ([list(map(float, e)) for e in embeddings], embedding_used_tokens)
 
     def _calc_response_usage(self, model: str, credentials: dict, tokens: int) -> EmbeddingUsage:
         """
@@ -113,12 +99,9 @@ class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
         :param tokens: input tokens
         :return: usage
         """
-        # get input price info
         input_price_info = self.get_price(
             model=model, credentials=credentials, price_type=PriceType.INPUT, tokens=tokens
         )
-
-        # transform usage
         usage = EmbeddingUsage(
             tokens=tokens,
             total_tokens=tokens,
@@ -128,5 +111,4 @@ class ZhipuAITextEmbeddingModel(_CommonZhipuaiAI, TextEmbeddingModel):
             currency=input_price_info.currency,
             latency=time.perf_counter() - self.started_at,
         )
-
         return usage

@@ -1,10 +1,12 @@
 import concurrent.futures
 from typing import Any, Optional, ClassVar
-
-from xinference_client.client.restful.restful_client import RESTfulAudioModelHandle
-
-from core.model_runtime.entities.common_entities import I18nObject
-from core.model_runtime.entities.model_entities import AIModelEntity, FetchFrom, ModelType
+from core.model_runtime.model_providers.__base.tts_model import TTSModel
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+    FetchFrom,
+    I18nObject,
+    ModelType,
+)
 from core.model_runtime.errors.invoke import (
     InvokeAuthorizationError,
     InvokeBadRequestError,
@@ -14,50 +16,50 @@ from core.model_runtime.errors.invoke import (
     InvokeServerUnavailableError,
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
-from core.model_runtime.model_providers.__base.tts_model import TTSModel
-from core.model_runtime.model_providers.xinference.xinference_helper import XinferenceHelper, validate_model_uid
+from xinference_client.client.restful.restful_client import RESTfulAudioModelHandle
+from ..xinference_helper import XinferenceHelper, validate_model_uid
 
 
 class XinferenceText2SpeechModel(TTSModel):
     model_voices: ClassVar[dict] = {
-            "__default": {
-                "all": [
-                    {"name": "Default", "value": "default"},
-                ]
-            },
-            "ChatTTS": {
-                "all": [
-                    {"name": "Alloy", "value": "alloy"},
-                    {"name": "Echo", "value": "echo"},
-                    {"name": "Fable", "value": "fable"},
-                    {"name": "Onyx", "value": "onyx"},
-                    {"name": "Nova", "value": "nova"},
-                    {"name": "Shimmer", "value": "shimmer"},
-                ]
-            },
-            "CosyVoice": {
-                "zh-Hans": [
-                    {"name": "中文男", "value": "中文男"},
-                    {"name": "中文女", "value": "中文女"},
-                    {"name": "粤语女", "value": "粤语女"},
-                ],
-                "zh-Hant": [
-                    {"name": "中文男", "value": "中文男"},
-                    {"name": "中文女", "value": "中文女"},
-                    {"name": "粤语女", "value": "粤语女"},
-                ],
-                "en-US": [
-                    {"name": "英文男", "value": "英文男"},
-                    {"name": "英文女", "value": "英文女"},
-                ],
-                "ja-JP": [
-                    {"name": "日语男", "value": "日语男"},
-                ],
-                "ko-KR": [
-                    {"name": "韩语女", "value": "韩语女"},
-                ],
-            },
-        }
+        "__default": {
+            "all": [
+                {"name": "Default", "value": "default"},
+            ]
+        },
+        "ChatTTS": {
+            "all": [
+                {"name": "Alloy", "value": "alloy"},
+                {"name": "Echo", "value": "echo"},
+                {"name": "Fable", "value": "fable"},
+                {"name": "Onyx", "value": "onyx"},
+                {"name": "Nova", "value": "nova"},
+                {"name": "Shimmer", "value": "shimmer"},
+            ]
+        },
+        "CosyVoice": {
+            "zh-Hans": [
+                {"name": "中文男", "value": "中文男"},
+                {"name": "中文女", "value": "中文女"},
+                {"name": "粤语女", "value": "粤语女"},
+            ],
+            "zh-Hant": [
+                {"name": "中文男", "value": "中文男"},
+                {"name": "中文女", "value": "中文女"},
+                {"name": "粤语女", "value": "粤语女"},
+            ],
+            "en-US": [
+                {"name": "英文男", "value": "英文男"},
+                {"name": "英文女", "value": "英文女"},
+            ],
+            "ja-JP": [
+                {"name": "日语男", "value": "日语男"},
+            ],
+            "ko-KR": [
+                {"name": "韩语女", "value": "韩语女"},
+            ],
+        },
+    }
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
         """
@@ -69,26 +71,26 @@ class XinferenceText2SpeechModel(TTSModel):
         """
         try:
             if not validate_model_uid(credentials):
-                raise CredentialsValidateFailedError("model_uid should not contain /, ?, or #")
-
+                raise CredentialsValidateFailedError(
+                    "model_uid should not contain /, ?, or #"
+                )
             credentials["server_url"] = credentials["server_url"].removesuffix("/")
-
             extra_param = XinferenceHelper.get_xinference_extra_parameter(
                 server_url=credentials["server_url"],
                 model_uid=credentials["model_uid"],
                 api_key=credentials.get("api_key"),
             )
-
             if "text-to-audio" not in extra_param.model_ability:
                 raise InvokeBadRequestError(
                     "please check model type, the model you want to invoke is not a text-to-audio model"
                 )
-
-            if extra_param.model_family and extra_param.model_family in self.model_voices:
+            if (
+                extra_param.model_family
+                and extra_param.model_family in self.model_voices
+            ):
                 credentials["audio_model_name"] = extra_param.model_family
             else:
                 credentials["audio_model_name"] = "__default"
-
             self._tts_invoke_streaming(
                 model=model,
                 credentials=credentials,
@@ -99,7 +101,13 @@ class XinferenceText2SpeechModel(TTSModel):
             raise CredentialsValidateFailedError(str(ex))
 
     def _invoke(
-        self, model: str, tenant_id: str, credentials: dict, content_text: str, voice: str, user: Optional[str] = None
+        self,
+        model: str,
+        tenant_id: str,
+        credentials: dict,
+        content_text: str,
+        voice: str,
+        user: Optional[str] = None,
     ):
         """
         _invoke text2speech model
@@ -114,11 +122,12 @@ class XinferenceText2SpeechModel(TTSModel):
         """
         return self._tts_invoke_streaming(model, credentials, content_text, voice)
 
-    def get_customizable_model_schema(self, model: str, credentials: dict) -> Optional[AIModelEntity]:
+    def get_customizable_model_schema(
+        self, model: str, credentials: dict
+    ) -> Optional[AIModelEntity]:
         """
         used to define customizable model schema
         """
-
         entity = AIModelEntity(
             model=model,
             label=I18nObject(en_US=model),
@@ -127,7 +136,6 @@ class XinferenceText2SpeechModel(TTSModel):
             model_properties={},
             parameter_rules=[],
         )
-
         return entity
 
     @property
@@ -148,7 +156,9 @@ class XinferenceText2SpeechModel(TTSModel):
             InvokeBadRequestError: [InvokeBadRequestError, KeyError, ValueError],
         }
 
-    def get_tts_model_voices(self, model: str, credentials: dict, language: Optional[str] = None) -> list:
+    def get_tts_model_voices(
+        self, model: str, credentials: dict, language: Optional[str] = None
+    ) -> list:
         audio_model_name = credentials.get("audio_model_name", "__default")
         for key, voices in self.model_voices.items():
             if key in audio_model_name:
@@ -161,7 +171,6 @@ class XinferenceText2SpeechModel(TTSModel):
                     for lang, lang_voices in voices.items():
                         all_voices.extend(lang_voices)
                     return all_voices
-
         return self.model_voices["__default"]["all"]
 
     def _get_model_default_voice(self, model: str, credentials: dict) -> Any:
@@ -176,7 +185,9 @@ class XinferenceText2SpeechModel(TTSModel):
     def _get_model_workers_limit(self, model: str, credentials: dict) -> int:
         return 5
 
-    def _tts_invoke_streaming(self, model: str, credentials: dict, content_text: str, voice: str) -> Any:
+    def _tts_invoke_streaming(
+        self, model: str, credentials: dict, content_text: str, voice: str
+    ) -> Any:
         """
         _tts_invoke_streaming text2speech model
 
@@ -187,39 +198,51 @@ class XinferenceText2SpeechModel(TTSModel):
         :return: text translated to audio file
         """
         credentials["server_url"] = credentials["server_url"].removesuffix("/")
-
         try:
             api_key = credentials.get("api_key")
             auth_headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
             handle = RESTfulAudioModelHandle(
-                credentials["model_uid"], credentials["server_url"], auth_headers=auth_headers
+                credentials["model_uid"],
+                credentials["server_url"],
+                auth_headers=auth_headers,
             )
-
             model_support_voice = [
-                x.get("value") for x in self.get_tts_model_voices(model=model, credentials=credentials)
+                x.get("value")
+                for x in self.get_tts_model_voices(model=model, credentials=credentials)
             ]
             if not voice or voice not in model_support_voice:
                 voice = self._get_model_default_voice(model, credentials)
             word_limit = self._get_model_word_limit(model, credentials)
             if len(content_text) > word_limit:
-                sentences = self._split_text_into_sentences(content_text, max_length=word_limit)
-                executor = concurrent.futures.ThreadPoolExecutor(max_workers=min(3, len(sentences)))
+                sentences = self._split_text_into_sentences(
+                    content_text, max_length=word_limit
+                )
+                executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=min(3, len(sentences))
+                )
                 futures = [
                     executor.submit(
-                        handle.speech, input=sentences[i], voice=voice, response_format="mp3", speed=1.0, stream=True
+                        handle.speech,
+                        input=sentences[i],
+                        voice=voice,
+                        response_format="mp3",
+                        speed=1.0,
+                        stream=True,
                     )
                     for i in range(len(sentences))
                 ]
-
                 for future in futures:
                     response = future.result()
                     for chunk in response:
                         yield chunk
             else:
                 response = handle.speech(
-                    input=content_text.strip(), voice=voice, response_format="mp3", speed=1.0, stream=True
+                    input=content_text.strip(),
+                    voice=voice,
+                    response_format="mp3",
+                    speed=1.0,
+                    stream=True,
                 )
-
                 for chunk in response:
                     yield chunk
         except Exception as ex:

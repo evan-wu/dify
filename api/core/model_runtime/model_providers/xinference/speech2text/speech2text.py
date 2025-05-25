@@ -1,9 +1,10 @@
 from typing import IO, Optional
-
-from xinference_client.client.restful.restful_client import Client, RESTfulAudioModelHandle
-
-from core.model_runtime.entities.common_entities import I18nObject
-from core.model_runtime.entities.model_entities import AIModelEntity, FetchFrom, ModelType
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+    FetchFrom,
+    I18nObject,
+    ModelType,
+)
 from core.model_runtime.errors.invoke import (
     InvokeAuthorizationError,
     InvokeBadRequestError,
@@ -14,7 +15,8 @@ from core.model_runtime.errors.invoke import (
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.speech2text_model import Speech2TextModel
-from core.model_runtime.model_providers.xinference.xinference_helper import validate_model_uid
+from xinference_client.client.restful.restful_client import Client, RESTfulAudioModelHandle
+from ..xinference_helper import validate_model_uid
 
 
 class XinferenceSpeech2TextModel(Speech2TextModel):
@@ -45,24 +47,14 @@ class XinferenceSpeech2TextModel(Speech2TextModel):
         try:
             if not validate_model_uid(credentials):
                 raise CredentialsValidateFailedError("model_uid should not contain /, ?, or #")
-
             credentials["server_url"] = credentials["server_url"].removesuffix("/")
-
-            # initialize client
-            client = Client(
-                base_url=credentials["server_url"],
-                api_key=credentials.get("api_key"),
-            )
-
+            client = Client(base_url=credentials["server_url"], api_key=credentials.get("api_key"))
             xinference_client = client.get_model(model_uid=credentials["model_uid"])
-
             if not isinstance(xinference_client, RESTfulAudioModelHandle):
                 raise InvokeBadRequestError(
                     "please check model type, the model you want to invoke is not a audio model"
                 )
-
             audio_file_path = self._get_demo_file_path()
-
             with open(audio_file_path, "rb") as audio_file:
                 self.invoke(model, credentials, audio_file)
         except Exception as ex:
@@ -118,7 +110,6 @@ class XinferenceSpeech2TextModel(Speech2TextModel):
         api_key = credentials.get("api_key")
         server_url = server_url.removesuffix("/")
         auth_headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-
         try:
             handle = RESTfulAudioModelHandle(model_uid, server_url, auth_headers)
             response = handle.transcriptions(
@@ -126,7 +117,6 @@ class XinferenceSpeech2TextModel(Speech2TextModel):
             )
         except RuntimeError as e:
             raise InvokeServerUnavailableError(str(e))
-
         return response["text"]
 
     def get_customizable_model_schema(self, model: str, credentials: dict) -> Optional[AIModelEntity]:
@@ -141,5 +131,4 @@ class XinferenceSpeech2TextModel(Speech2TextModel):
             model_properties={},
             parameter_rules=[],
         )
-
         return entity

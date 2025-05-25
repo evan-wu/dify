@@ -1,10 +1,12 @@
 from typing import Optional
 
-from xinference_client.client.restful.restful_client import Client, RESTfulRerankModelHandle
-
-from core.model_runtime.entities.common_entities import I18nObject
-from core.model_runtime.entities.model_entities import AIModelEntity, FetchFrom, ModelType
-from core.model_runtime.entities.rerank_entities import RerankDocument, RerankResult
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+    FetchFrom,
+    I18nObject,
+    ModelType,
+)
+from core.model_runtime.entities.rerank_entities import RerankResult, RerankDocument
 from core.model_runtime.errors.invoke import (
     InvokeAuthorizationError,
     InvokeBadRequestError,
@@ -14,8 +16,9 @@ from core.model_runtime.errors.invoke import (
     InvokeServerUnavailableError,
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
+from xinference_client.client.restful.restful_client import Client, RESTfulRerankModelHandle
+from ..xinference_helper import validate_model_uid
 from core.model_runtime.model_providers.__base.rerank_model import RerankModel
-from core.model_runtime.model_providers.xinference.xinference_helper import validate_model_uid
 
 
 class XinferenceRerankModel(RerankModel):
@@ -47,13 +50,11 @@ class XinferenceRerankModel(RerankModel):
         """
         if len(docs) == 0:
             return RerankResult(model=model, docs=[])
-
         server_url = credentials["server_url"]
         model_uid = credentials["model_uid"]
         api_key = credentials.get("api_key")
         server_url = server_url.removesuffix("/")
         auth_headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-
         params = {"documents": docs, "query": query, "top_n": top_n, "return_documents": True}
         try:
             handle = RESTfulRerankModelHandle(model_uid, server_url, auth_headers)
@@ -61,26 +62,15 @@ class XinferenceRerankModel(RerankModel):
         except RuntimeError as e:
             if "rerank hasn't support extra parameter" not in str(e):
                 raise InvokeServerUnavailableError(str(e))
-
-            # compatible xinference server between v0.10.1 - v0.12.1, not support 'return_len'
             handle = RESTfulRerankModelHandleWithoutExtraParameter(model_uid, server_url, auth_headers)
             response = handle.rerank(**params)
-
         rerank_documents = []
         for idx, result in enumerate(response["results"]):
-            # format document
             index = result["index"]
             page_content = result["document"] if isinstance(result["document"], str) else result["document"]["text"]
-            rerank_document = RerankDocument(
-                index=index,
-                text=page_content,
-                score=result["relevance_score"],
-            )
-
-            # score threshold check
+            rerank_document = RerankDocument(index=index, text=page_content, score=result["relevance_score"])
             if score_threshold is None or result["relevance_score"] >= score_threshold:
                 rerank_documents.append(rerank_document)
-
         return RerankResult(model=model, docs=rerank_documents)
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
@@ -94,22 +84,13 @@ class XinferenceRerankModel(RerankModel):
         try:
             if not validate_model_uid(credentials):
                 raise CredentialsValidateFailedError("model_uid should not contain /, ?, or #")
-
             credentials["server_url"] = credentials["server_url"].removesuffix("/")
-
-            # initialize client
-            client = Client(
-                base_url=credentials["server_url"],
-                api_key=credentials.get("api_key"),
-            )
-
+            client = Client(base_url=credentials["server_url"], api_key=credentials.get("api_key"))
             xinference_client = client.get_model(model_uid=credentials["model_uid"])
-
             if not isinstance(xinference_client, RESTfulRerankModelHandle):
                 raise InvokeBadRequestError(
                     "please check model type, the model you want to invoke is not a rerank model"
                 )
-
             self.invoke(
                 model=model,
                 credentials=credentials,
@@ -154,7 +135,6 @@ class XinferenceRerankModel(RerankModel):
             model_properties={},
             parameter_rules=[],
         )
-
         return entity
 
 
@@ -177,7 +157,6 @@ class RESTfulRerankModelHandleWithoutExtraParameter(RESTfulRerankModelHandle):
             "max_chunks_per_doc": max_chunks_per_doc,
             "return_documents": return_documents,
         }
-
         import requests
 
         response = requests.post(url, json=request_body, headers=self.auth_headers)

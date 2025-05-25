@@ -4,11 +4,13 @@ label:
 description:
   en_US: Model providers compatible with OpenAI's API standard, such as LM Studio.
   zh_Hans: 兼容 OpenAI API 的模型供应商，例如 LM Studio 。
+icon_small:
+  en_US: icon.svg
 supported_model_types:
   - llm
+  - rerank
   - text-embedding
   - speech2text
-  - rerank
   - tts
 configurate_methods:
   - customizable-model
@@ -21,6 +23,15 @@ model_credential_schema:
       en_US: Enter full model name
       zh_Hans: 输入模型全称
   credential_form_schemas:
+    - variable: display_name
+      label:
+        en_US: Model display name
+        zh_Hans: 模型显示名称
+      type: text-input
+      required: false
+      placeholder:
+        zh_Hans: 模型在界面的显示名称
+        en_US: The display name of the model in the interface.
     - variable: api_key
       label:
         en_US: API Key
@@ -38,6 +49,15 @@ model_credential_schema:
       placeholder:
         zh_Hans: Base URL, e.g. https://api.openai.com/v1
         en_US: Base URL, e.g. https://api.openai.com/v1
+    - variable: endpoint_model_name
+      label:
+        zh_Hans: API endpoint中的模型名称
+        en_US: model name for API endpoint
+      type: text-input
+      required: false
+      placeholder:
+        zh_Hans: endpoint model name, e.g. chatgpt4.0
+        en_US: endpoint model name, e.g. chatgpt4.0
     - variable: mode
       show_on:
         - variable: __model_type
@@ -107,6 +127,24 @@ model_credential_schema:
           value: llm
       default: "4096"
       type: text-input
+    - variable: agent_though_support
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        en_US: Agent Thought
+      type: select
+      required: false
+      default: not_supported
+      options:
+        - value: supported
+          label:
+            en_US: Support
+            zh_Hans: 支持
+        - value: not_supported
+          label:
+            en_US: Not Support
+            zh_Hans: 不支持
     - variable: function_calling_type
       show_on:
         - variable: __model_type
@@ -166,6 +204,24 @@ model_credential_schema:
           label:
             en_US: Not Support
             zh_Hans: 不支持
+    - variable: structured_output_support
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        en_US: Structured Output
+      type: select
+      required: false
+      default: not_supported
+      options:
+        - value: supported
+          label:
+            en_US: Support
+            zh_Hans: 支持
+        - value: not_supported
+          label:
+            en_US: Not Support
+            zh_Hans: 不支持
     - variable: stream_mode_delimiter
       label:
         zh_Hans: 流模式返回结果的分隔符
@@ -191,3 +247,12 @@ model_credential_schema:
       help:
         en_US: "List voice names separated by commas. First voice will be used as default."
         zh_Hans: "用英文逗号分隔的声音列表。第一个声音将作为默认值。"
+extra:
+  python:
+    provider_source: provider/openai_api_compatible.py
+    model_sources:
+      - "models/llm/llm.py"
+      - "models/text_embedding/text_embedding.py"
+      - "models/rerank/rerank.py"
+      - "models/speech2text/speech2text.py"
+      - "models/tts/tts.py"

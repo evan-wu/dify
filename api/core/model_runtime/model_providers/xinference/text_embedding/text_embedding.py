@@ -1,12 +1,16 @@
 import time
 from typing import Optional
 
-from xinference_client.client.restful.restful_client import Client, RESTfulEmbeddingModelHandle
-
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+    FetchFrom,
+    I18nObject,
+    ModelPropertyKey,
+    ModelType,
+    PriceType,
+)
 from core.entities.embedding_type import EmbeddingInputType
-from core.model_runtime.entities.common_entities import I18nObject
-from core.model_runtime.entities.model_entities import AIModelEntity, FetchFrom, ModelPropertyKey, ModelType, PriceType
-from core.model_runtime.entities.text_embedding_entities import EmbeddingUsage, TextEmbeddingResult
+from core.model_runtime.entities.text_embedding_entities import TextEmbeddingResult, EmbeddingUsage
 from core.model_runtime.errors.invoke import (
     InvokeAuthorizationError,
     InvokeBadRequestError,
@@ -17,7 +21,11 @@ from core.model_runtime.errors.invoke import (
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
-from core.model_runtime.model_providers.xinference.xinference_helper import XinferenceHelper, validate_model_uid
+from xinference_client.client.restful.restful_client import (
+    Client,
+    RESTfulEmbeddingModelHandle,
+)
+from ..xinference_helper import XinferenceHelper, validate_model_uid
 
 
 class XinferenceTextEmbeddingModel(TextEmbeddingModel):
@@ -54,52 +62,35 @@ class XinferenceTextEmbeddingModel(TextEmbeddingModel):
         api_key = credentials.get("api_key")
         server_url = server_url.removesuffix("/")
         auth_headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-
         try:
             handle = RESTfulEmbeddingModelHandle(model_uid, server_url, auth_headers)
             embeddings = handle.create_embedding(input=texts)
         except RuntimeError as e:
             raise InvokeServerUnavailableError(str(e))
-
-        """
-        for convenience, the response json is like:
-        class Embedding(TypedDict):
-            object: Literal["list"]
-            model: str
-            data: List[EmbeddingData]
-            usage: EmbeddingUsage
-        class EmbeddingUsage(TypedDict):
-            prompt_tokens: int
-            total_tokens: int
-        class EmbeddingData(TypedDict):
-            index: int
-            object: str
-            embedding: List[float]
-        """
-
+        '\n        for convenience, the response json is like:\n        class Embedding(TypedDict):\n            object: Literal["list"]\n            model: str\n            data: List[EmbeddingData]\n            usage: EmbeddingUsage\n        class EmbeddingUsage(TypedDict):\n            prompt_tokens: int\n            total_tokens: int\n        class EmbeddingData(TypedDict):\n            index: int\n            object: str\n            embedding: List[float]\n        '
         usage = embeddings["usage"]
-        usage = self._calc_response_usage(model=model, credentials=credentials, tokens=usage["total_tokens"])
-
-        result = TextEmbeddingResult(
-            model=model, embeddings=[embedding["embedding"] for embedding in embeddings["data"]], usage=usage
+        usage = self._calc_response_usage(
+            model=model, credentials=credentials, tokens=usage["total_tokens"]
         )
-
+        result = TextEmbeddingResult(
+            model=model,
+            embeddings=[embedding["embedding"] for embedding in embeddings["data"]],
+            usage=usage,
+        )
         return result
 
-    def get_num_tokens(self, model: str, credentials: dict, texts: list[str]) -> int:
+    def get_num_tokens(
+        self, model: str, credentials: dict, texts: list[str]
+    ) -> list[int]:
         """
         Get number of tokens for given prompt messages
 
         :param model: model name
         :param credentials: model credentials
         :param texts: texts to embed
-        :return:
+        :return: number of tokens for each text
         """
-        num_tokens = 0
-        for text in texts:
-            # use GPT2Tokenizer to get num tokens
-            num_tokens += self._get_num_tokens_by_gpt2(text)
-        return num_tokens
+        return [self._get_num_tokens_by_gpt2(text) for text in texts]
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
         """
@@ -111,39 +102,32 @@ class XinferenceTextEmbeddingModel(TextEmbeddingModel):
         """
         try:
             if not validate_model_uid(credentials):
-                raise CredentialsValidateFailedError("model_uid should not contain /, ?, or #")
-
+                raise CredentialsValidateFailedError(
+                    "model_uid should not contain /, ?, or #"
+                )
             server_url = credentials["server_url"]
             model_uid = credentials["model_uid"]
             api_key = credentials.get("api_key")
             extra_args = XinferenceHelper.get_xinference_extra_parameter(
-                server_url=server_url,
-                model_uid=model_uid,
-                api_key=api_key,
+                server_url=server_url, model_uid=model_uid, api_key=api_key
             )
-
             if extra_args.max_tokens:
                 credentials["max_tokens"] = extra_args.max_tokens
             server_url = server_url.removesuffix("/")
-
-            client = Client(
-                base_url=server_url,
-                api_key=api_key,
-            )
-
+            client = Client(base_url=server_url, api_key=api_key)
             try:
                 handle = client.get_model(model_uid=model_uid)
             except RuntimeError as e:
                 raise InvokeAuthorizationError(e)
-
             if not isinstance(handle, RESTfulEmbeddingModelHandle):
                 raise InvokeBadRequestError(
                     "please check model type, the model you want to invoke is not a text embedding model"
                 )
-
             self._invoke(model=model, credentials=credentials, texts=["ping"])
         except InvokeAuthorizationError as e:
-            raise CredentialsValidateFailedError(f"Failed to validate credentials for model {model}: {e}")
+            raise CredentialsValidateFailedError(
+                f"Failed to validate credentials for model {model}: {e}"
+            )
         except RuntimeError as e:
             raise CredentialsValidateFailedError(e)
 
@@ -157,7 +141,9 @@ class XinferenceTextEmbeddingModel(TextEmbeddingModel):
             InvokeBadRequestError: [KeyError],
         }
 
-    def _calc_response_usage(self, model: str, credentials: dict, tokens: int) -> EmbeddingUsage:
+    def _calc_response_usage(
+        self, model: str, credentials: dict, tokens: int
+    ) -> EmbeddingUsage:
         """
         Calculate response usage
 
@@ -166,12 +152,12 @@ class XinferenceTextEmbeddingModel(TextEmbeddingModel):
         :param tokens: input tokens
         :return: usage
         """
-        # get input price info
         input_price_info = self.get_price(
-            model=model, credentials=credentials, price_type=PriceType.INPUT, tokens=tokens
+            model=model,
+            credentials=credentials,
+            price_type=PriceType.INPUT,
+            tokens=tokens,
         )
-
-        # transform usage
         usage = EmbeddingUsage(
             tokens=tokens,
             total_tokens=tokens,
@@ -181,14 +167,14 @@ class XinferenceTextEmbeddingModel(TextEmbeddingModel):
             currency=input_price_info.currency,
             latency=time.perf_counter() - self.started_at,
         )
-
         return usage
 
-    def get_customizable_model_schema(self, model: str, credentials: dict) -> Optional[AIModelEntity]:
+    def get_customizable_model_schema(
+        self, model: str, credentials: dict
+    ) -> Optional[AIModelEntity]:
         """
         used to define customizable model schema
         """
-
         entity = AIModelEntity(
             model=model,
             label=I18nObject(en_US=model),
@@ -196,9 +182,10 @@ class XinferenceTextEmbeddingModel(TextEmbeddingModel):
             model_type=ModelType.TEXT_EMBEDDING,
             model_properties={
                 ModelPropertyKey.MAX_CHUNKS: 1,
-                ModelPropertyKey.CONTEXT_SIZE: "max_tokens" in credentials and credentials["max_tokens"] or 512,
+                ModelPropertyKey.CONTEXT_SIZE: "max_tokens" in credentials
+                and credentials["max_tokens"]
+                or 512,
             },
             parameter_rules=[],
         )
-
         return entity

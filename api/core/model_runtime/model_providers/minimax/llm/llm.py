@@ -1,8 +1,12 @@
 from collections.abc import Generator
 from typing import ClassVar
 
-from core.model_runtime.entities.llm_entities import LLMResult, LLMResultChunk, LLMResultChunkDelta
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.entities import (
+    LLMResult,
+    LLMResultChunk,
+    LLMResultChunkDelta,
+)
+from core.model_runtime.entities import (
     AssistantPromptMessage,
     PromptMessage,
     PromptMessageTool,
@@ -20,9 +24,9 @@ from core.model_runtime.errors.invoke import (
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
-from core.model_runtime.model_providers.minimax.llm.chat_completion import MinimaxChatCompletion
-from core.model_runtime.model_providers.minimax.llm.chat_completion_pro import MinimaxChatCompletionPro
-from core.model_runtime.model_providers.minimax.llm.errors import (
+from .chat_completion import MinimaxChatCompletion
+from .chat_completion_pro import MinimaxChatCompletionPro
+from .errors import (
     BadRequestError,
     InsufficientAccountBalanceError,
     InternalServerError,
@@ -30,13 +34,13 @@ from core.model_runtime.model_providers.minimax.llm.errors import (
     InvalidAuthenticationError,
     RateLimitReachedError,
 )
-from core.model_runtime.model_providers.minimax.llm.types import MinimaxMessage
+from .types import MinimaxMessage
 
 
 class MinimaxLargeLanguageModel(LargeLanguageModel):
-    model_apis: ClassVar[dict] = {
+    model_apis:ClassVar[dict] = {
+        "minimax-text-01": MinimaxChatCompletionPro,
         "abab7-chat-preview": MinimaxChatCompletionPro,
-        "abab6.5t-chat": MinimaxChatCompletionPro,
         "abab6.5s-chat": MinimaxChatCompletionPro,
         "abab6.5-chat": MinimaxChatCompletionPro,
         "abab6-chat": MinimaxChatCompletionPro,
@@ -64,14 +68,10 @@ class MinimaxLargeLanguageModel(LargeLanguageModel):
         """
         if model not in self.model_apis:
             raise CredentialsValidateFailedError(f"Invalid model: {model}")
-
         if not credentials.get("minimax_api_key"):
             raise CredentialsValidateFailedError("Invalid API key")
-
         if not credentials.get("minimax_group_id"):
             raise CredentialsValidateFailedError("Invalid group ID")
-
-        # ping
         instance = MinimaxChatCompletionPro()
         try:
             instance.generate(
@@ -125,12 +125,10 @@ class MinimaxLargeLanguageModel(LargeLanguageModel):
         use MinimaxChatCompletionPro as the type of client, anyway,  MinimaxChatCompletion has the same interface
         """
         client: MinimaxChatCompletionPro = self.model_apis[model]()
-
         if tools:
             tools = [
                 {"name": tool.name, "description": tool.description, "parameters": tool.parameters} for tool in tools
             ]
-
         response = client.generate(
             model=model,
             api_key=credentials["minimax_api_key"],
@@ -142,7 +140,6 @@ class MinimaxLargeLanguageModel(LargeLanguageModel):
             stream=stream,
             user=user,
         )
-
         if stream:
             return self._handle_chat_generate_stream_response(
                 model=model, prompt_messages=prompt_messages, credentials=credentials, response=response
@@ -185,10 +182,7 @@ class MinimaxLargeLanguageModel(LargeLanguageModel):
         return LLMResult(
             model=model,
             prompt_messages=prompt_messages,
-            message=AssistantPromptMessage(
-                content=response.content,
-                tool_calls=[],
-            ),
+            message=AssistantPromptMessage(content=response.content, tool_calls=[]),
             usage=usage,
         )
 
@@ -220,7 +214,6 @@ class MinimaxLargeLanguageModel(LargeLanguageModel):
             elif message.function_call:
                 if "name" not in message.function_call or "arguments" not in message.function_call:
                     continue
-
                 yield LLMResultChunk(
                     model=model,
                     prompt_messages=prompt_messages,
@@ -265,10 +258,6 @@ class MinimaxLargeLanguageModel(LargeLanguageModel):
             InvokeConnectionError: [],
             InvokeServerUnavailableError: [InternalServerError],
             InvokeRateLimitError: [RateLimitReachedError],
-            InvokeAuthorizationError: [
-                InvalidAuthenticationError,
-                InsufficientAccountBalanceError,
-                InvalidAPIKeyError,
-            ],
+            InvokeAuthorizationError: [InvalidAuthenticationError, InsufficientAccountBalanceError, InvalidAPIKeyError],
             InvokeBadRequestError: [BadRequestError, KeyError],
         }

@@ -1,9 +1,8 @@
-import re
 from collections.abc import Generator
 from typing import Optional, cast
 
-from volcenginesdkarkruntime import Ark
-from volcenginesdkarkruntime.types.chat import (
+from volcenginesdkarkruntime import Ark  # type: ignore
+from volcenginesdkarkruntime.types.chat import (  # type: ignore
     ChatCompletion,
     ChatCompletionAssistantMessageParam,
     ChatCompletionChunk,
@@ -16,12 +15,12 @@ from volcenginesdkarkruntime.types.chat import (
     ChatCompletionToolParam,
     ChatCompletionUserMessageParam,
 )
-from volcenginesdkarkruntime.types.chat.chat_completion_content_part_image_param import ImageURL
-from volcenginesdkarkruntime.types.chat.chat_completion_message_tool_call_param import Function
-from volcenginesdkarkruntime.types.create_embedding_response import CreateEmbeddingResponse
-from volcenginesdkarkruntime.types.shared_params import FunctionDefinition
+from volcenginesdkarkruntime.types.chat.chat_completion_content_part_image_param import ImageURL  # type: ignore
+from volcenginesdkarkruntime.types.chat.chat_completion_message_tool_call_param import Function  # type: ignore
+from volcenginesdkarkruntime.types.create_embedding_response import CreateEmbeddingResponse  # type: ignore
+from volcenginesdkarkruntime.types.shared_params import FunctionDefinition  # type: ignore
 
-from core.model_runtime.entities.message_entities import (
+from dify_plugin.entities.model.message import (
     AssistantPromptMessage,
     ImagePromptMessageContent,
     PromptMessage,
@@ -104,17 +103,16 @@ class ArkClientV3:
                     if message_content.type == PromptMessageContentType.TEXT:
                         content.append(
                             ChatCompletionContentPartTextParam(
-                                text=message_content.text,
+                                text=message_content.data,
                                 type="text",
                             )
                         )
                     elif message_content.type == PromptMessageContentType.IMAGE:
                         message_content = cast(ImagePromptMessageContent, message_content)
-                        image_data = re.sub(r"^data:image\/[a-zA-Z]+;base64,", "", message_content.data)
                         content.append(
                             ChatCompletionContentPartImageParam(
                                 image_url=ImageURL(
-                                    url=image_data,
+                                    url=message_content.data,
                                     detail=message_content.detail.value,
                                 ),
                                 type="image_url",
@@ -171,6 +169,7 @@ class ArkClientV3:
         presence_penalty: Optional[float] = None,
         top_p: Optional[float] = None,
         temperature: Optional[float] = None,
+        skip_moderation: Optional[bool] = None,
     ) -> ChatCompletion:
         """Block chat"""
         return self.ark.chat.completions.create(
@@ -183,6 +182,7 @@ class ArkClientV3:
             presence_penalty=presence_penalty,
             top_p=top_p,
             temperature=temperature,
+            extra_headers={"x-ark-moderation-scene": "skip-ark-moderation"} if skip_moderation else None,
         )
 
     def stream_chat(
@@ -195,6 +195,7 @@ class ArkClientV3:
         presence_penalty: Optional[float] = None,
         top_p: Optional[float] = None,
         temperature: Optional[float] = None,
+        skip_moderation: Optional[bool] = None,
     ) -> Generator[ChatCompletionChunk]:
         """Stream chat"""
         chunks = self.ark.chat.completions.create(
@@ -209,6 +210,7 @@ class ArkClientV3:
             top_p=top_p,
             temperature=temperature,
             stream_options={"include_usage": True},
+            extra_headers={"x-ark-moderation-scene": "skip-ark-moderation"} if skip_moderation else None,
         )
         yield from chunks
 

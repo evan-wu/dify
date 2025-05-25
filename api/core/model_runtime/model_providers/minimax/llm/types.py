@@ -18,12 +18,7 @@ class MinimaxMessage:
     def to_dict(self) -> dict[str, Any]:
         if self.function_call and self.role == MinimaxMessage.Role.ASSISTANT.value:
             return {"sender_type": "BOT", "sender_name": "专家", "text": "", "function_call": self.function_call}
-
-        return {
-            "sender_type": self.role,
-            "sender_name": "我" if self.role == "USER" else "专家",
-            "text": self.content,
-        }
+        return {"sender_type": self.role, "sender_name": "我" if self.role == "USER" else "专家", "text": self.content}
 
     def __init__(self, content: str, role: str = "USER") -> None:
         self.content = content

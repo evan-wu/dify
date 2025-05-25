@@ -1,25 +1,29 @@
 from collections.abc import Generator
 from typing import Optional
 
-from httpx import Response, post
-from yarl import URL
-
-from core.model_runtime.entities.common_entities import I18nObject
-from core.model_runtime.entities.llm_entities import LLMMode, LLMResult, LLMResultChunk, LLMResultChunkDelta, LLMUsage
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
+from core.model_runtime.entities.model_entities import (
+    AIModelEntity,
+    FetchFrom,
+    I18nObject,
+    ModelPropertyKey,
+    ModelType,
+    ParameterRule,
+    ParameterType,
+)
+from core.model_runtime.entities import (
+    LLMMode,
+    LLMResult,
+    LLMResultChunk,
+    LLMResultChunkDelta,
+    LLMUsage,
+)
+from core.model_runtime.entities import (
     AssistantPromptMessage,
     PromptMessage,
     PromptMessageTool,
     SystemPromptMessage,
     UserPromptMessage,
-)
-from core.model_runtime.entities.model_entities import (
-    AIModelEntity,
-    FetchFrom,
-    ModelPropertyKey,
-    ModelType,
-    ParameterRule,
-    ParameterType,
 )
 from core.model_runtime.errors.invoke import (
     InvokeAuthorizationError,
@@ -30,7 +34,8 @@ from core.model_runtime.errors.invoke import (
     InvokeServerUnavailableError,
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
-from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
+from httpx import Response, post
+from yarl import URL
 
 
 class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
@@ -67,7 +72,6 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
         """
         if "server_url" not in credentials:
             raise CredentialsValidateFailedError("server_url is required in credentials")
-
         try:
             self._invoke(
                 model=model,
@@ -137,17 +141,14 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
                 label=I18nObject(zh_Hans="最大生成长度", en_US="Max Tokens"),
             ),
         ]
-
         completion_type = None
-
         if "completion_type" in credentials:
             if credentials["completion_type"] == "chat":
                 completion_type = LLMMode.CHAT.value
             elif credentials["completion_type"] == "completion":
                 completion_type = LLMMode.COMPLETION.value
             else:
-                raise ValueError(f'completion_type {credentials["completion_type"]} is not supported')
-
+                raise ValueError(f"completion_type {credentials['completion_type']} is not supported")
         entity = AIModelEntity(
             model=model,
             label=I18nObject(en_US=model),
@@ -159,7 +160,6 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
                 ModelPropertyKey.CONTEXT_SIZE: int(credentials.get("context_length", 2048)),
             },
         )
-
         return entity
 
     def _generate(
@@ -178,10 +178,8 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
         """
         if "server_url" not in credentials:
             raise CredentialsValidateFailedError("server_url is required in credentials")
-
-        if "stream" in credentials and not bool(credentials["stream"]) and stream:
+        if "stream" in credentials and (not bool(credentials["stream"])) and stream:
             raise ValueError(f"stream is not supported by model {model}")
-
         try:
             parameters = {}
             if "temperature" in model_parameters:
@@ -194,7 +192,6 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
                 parameters["presence_penalty"] = model_parameters["presence_penalty"]
             if "frequency_penalty" in model_parameters:
                 parameters["frequency_penalty"] = model_parameters["frequency_penalty"]
-
             response = post(
                 str(URL(credentials["server_url"]) / "v2" / "models" / model / "generate"),
                 json={
@@ -207,7 +204,6 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
             response.raise_for_status()
             if response.status_code != 200:
                 raise InvokeBadRequestError(f"Invoke failed with status code {response.status_code}, {response.text}")
-
             if stream:
                 return self._handle_chat_stream_response(
                     model=model, credentials=credentials, prompt_messages=prompt_messages, tools=tools, resp=response
@@ -230,11 +226,9 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
         handle normal chat generate response
         """
         text = resp.json()["text_output"]
-
         usage = LLMUsage.empty_usage()
         usage.prompt_tokens = self.get_num_tokens(model, credentials, prompt_messages)
         usage.completion_tokens = self._get_num_tokens_by_gpt2(text)
-
         return LLMResult(
             model=model, prompt_messages=prompt_messages, message=AssistantPromptMessage(content=text), usage=usage
         )
@@ -251,11 +245,9 @@ class TritonInferenceAILargeLanguageModel(LargeLanguageModel):
         handle normal chat generate response
         """
         text = resp.json()["text_output"]
-
         usage = LLMUsage.empty_usage()
         usage.prompt_tokens = self.get_num_tokens(model, credentials, prompt_messages)
         usage.completion_tokens = self._get_num_tokens_by_gpt2(text)
-
         yield LLMResultChunk(
             model=model,
             prompt_messages=prompt_messages,

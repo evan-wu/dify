@@ -1,7 +1,6 @@
 import threading
 from queue import Queue
 from typing import Any, Optional
-
 import dashscope
 from dashscope import SpeechSynthesizer
 from dashscope.api_entities.dashscope_response import SpeechSynthesisResponse
@@ -10,7 +9,7 @@ from dashscope.audio.tts import ResultCallback, SpeechSynthesisResult
 from core.model_runtime.errors.invoke import InvokeBadRequestError
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.tts_model import TTSModel
-from core.model_runtime.model_providers.tongyi._common import _CommonTongyi
+from .._common import _CommonTongyi
 
 
 class TongyiText2SpeechModel(_CommonTongyi, TTSModel):
@@ -36,7 +35,6 @@ class TongyiText2SpeechModel(_CommonTongyi, TTSModel):
             d["value"] for d in self.get_tts_model_voices(model=model, credentials=credentials)
         ]:
             voice = self._get_model_default_voice(model, credentials)
-
         return self._tts_invoke_streaming(model=model, credentials=credentials, content_text=content_text, voice=voice)
 
     def validate_credentials(self, model: str, credentials: dict, user: Optional[str] = None) -> None:
@@ -95,13 +93,11 @@ class TongyiText2SpeechModel(_CommonTongyi, TTSModel):
                 target=invoke_remote,
                 args=(content_text, voice, credentials.get("dashscope_api_key"), callback, audio_type, word_limit),
             ).start()
-
             while True:
                 audio = audio_queue.get()
                 if audio is None:
                     break
                 yield audio
-
         except Exception as ex:
             raise InvokeBadRequestError(str(ex))
 

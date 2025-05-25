@@ -2,7 +2,7 @@ import re
 from collections.abc import Callable, Generator
 from typing import cast
 
-from core.model_runtime.entities.message_entities import (
+from dify_plugin.entities.model.message import (
     AssistantPromptMessage,
     ImagePromptMessageContent,
     PromptMessage,
@@ -12,8 +12,8 @@ from core.model_runtime.entities.message_entities import (
     ToolPromptMessage,
     UserPromptMessage,
 )
-from core.model_runtime.model_providers.volcengine_maas.legacy.errors import wrap_error
-from core.model_runtime.model_providers.volcengine_maas.legacy.volc_sdk import ChatRole, MaasError, MaasService
+from .errors import wrap_error
+from .volc_sdk import ChatRole, MaasError, MaasService
 
 
 class MaaSClient(MaasService):

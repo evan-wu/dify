@@ -1,10 +1,10 @@
-from core.model_runtime.errors.invoke import (
+from dify_plugin.errors.model import (
+    InvokeError,
+    InvokeConnectionError,
+    InvokeServerUnavailableError,
+    InvokeRateLimitError,
     InvokeAuthorizationError,
     InvokeBadRequestError,
-    InvokeConnectionError,
-    InvokeError,
-    InvokeRateLimitError,
-    InvokeServerUnavailableError,
 )
 
 

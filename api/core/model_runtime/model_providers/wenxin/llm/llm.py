@@ -1,34 +1,33 @@
 from collections.abc import Generator
 from typing import Optional, Union, cast
-
-from core.model_runtime.callbacks.base_callback import Callback
-from core.model_runtime.entities.llm_entities import LLMResult, LLMResultChunk, LLMResultChunkDelta
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.entities import (
+    LLMMode,
+    LLMResult,
+    LLMResultChunk,
+    LLMResultChunkDelta,
+)
+from core.model_runtime.entities import (
     AssistantPromptMessage,
+    ImagePromptMessageContent,
     PromptMessage,
+    PromptMessageContent,
+    PromptMessageContentType,
     PromptMessageTool,
     SystemPromptMessage,
+    ToolPromptMessage,
     UserPromptMessage,
 )
-from core.model_runtime.errors.invoke import (
-    InvokeError,
-)
+
+from core.model_runtime.errors.invoke import InvokeError
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
+
 from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
+
 from core.model_runtime.model_providers.wenxin._common import BaiduAccessToken
 from core.model_runtime.model_providers.wenxin.llm.ernie_bot import ErnieBotModel, ErnieMessage
 from core.model_runtime.model_providers.wenxin.wenxin_errors import invoke_error_mapping
 
-ERNIE_BOT_BLOCK_MODE_PROMPT = """You should always follow the instructions and output a valid {{block}} object.
-The structure of the {{block}} object you can found in the instructions, use {"answer": "$your_answer"} as the default structure
-if you are not sure about the structure.
-
-<instructions>
-{{instructions}}
-</instructions>
-
-You should also complete the text started with ``` but not tell ``` directly.
-"""  # noqa: E501
+ERNIE_BOT_BLOCK_MODE_PROMPT = 'You should always follow the instructions and output a valid {{block}} object.\nThe structure of the {{block}} object you can found in the instructions, use {"answer": "$your_answer"} as the default structure\nif you are not sure about the structure.\n\n<instructions>\n{{instructions}}\n</instructions>\n\nYou should also complete the text started with ``` but not tell ``` directly.\n'
 
 
 class ErnieBotLargeLanguageModel(LargeLanguageModel):
@@ -64,23 +63,32 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
         stop: Optional[list[str]] = None,
         stream: bool = True,
         user: Optional[str] = None,
-        callbacks: Optional[list[Callback]] = None,
     ) -> Union[LLMResult, Generator]:
         """
         Code block mode wrapper for invoking large language model
         """
-        if "response_format" in model_parameters and model_parameters["response_format"] in {"JSON", "XML"}:
+        if "response_format" in model_parameters and model_parameters[
+            "response_format"
+        ] in {"JSON", "XML"}:
             response_format = model_parameters["response_format"]
             stop = stop or []
             self._transform_json_prompts(
-                model, credentials, prompt_messages, model_parameters, tools, stop, stream, user, response_format
+                model,
+                credentials,
+                prompt_messages,
+                model_parameters,
+                tools,
+                stop,
+                stream,
+                user,
+                response_format,
             )
             model_parameters.pop("response_format")
             if stream:
                 return self._code_block_mode_stream_processor(
                     model=model,
                     prompt_messages=prompt_messages,
-                    input_generator=self._invoke(
+                    input_generator=self._invoke(  # type: ignore
                         model=model,
                         credentials=credentials,
                         prompt_messages=prompt_messages,
@@ -91,8 +99,16 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
                         user=user,
                     ),
                 )
-
-        return self._invoke(model, credentials, prompt_messages, model_parameters, tools, stop, stream, user)
+        return self._invoke(
+            model,
+            credentials,
+            prompt_messages,
+            model_parameters,
+            tools,
+            stop,
+            stream,
+            user,
+        )
 
     def _transform_json_prompts(
         self,
@@ -109,31 +125,30 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
         """
         Transform json prompts to model prompts
         """
-
-        # check if there is a system message
-        if len(prompt_messages) > 0 and isinstance(prompt_messages[0], SystemPromptMessage):
-            # override the system message
+        if len(prompt_messages) > 0 and isinstance(
+            prompt_messages[0], SystemPromptMessage
+        ):
             prompt_messages[0] = SystemPromptMessage(
-                content=ERNIE_BOT_BLOCK_MODE_PROMPT.replace("{{instructions}}", prompt_messages[0].content).replace(
-                    "{{block}}", response_format
-                )
+                content=ERNIE_BOT_BLOCK_MODE_PROMPT.replace(
+                    "{{instructions}}", str(prompt_messages[0].content)
+                ).replace("{{block}}", response_format)
             )
         else:
-            # insert the system message
             prompt_messages.insert(
                 0,
                 SystemPromptMessage(
                     content=ERNIE_BOT_BLOCK_MODE_PROMPT.replace(
-                        "{{instructions}}", f"Please output a valid {response_format} object."
+                        "{{instructions}}",
+                        f"Please output a valid {response_format} object.",
                     ).replace("{{block}}", response_format)
                 ),
             )
-
-        if len(prompt_messages) > 0 and isinstance(prompt_messages[-1], UserPromptMessage):
-            # add ```JSON\n to the last message
-            prompt_messages[-1].content += "\n```JSON\n{\n"
+        if len(prompt_messages) > 0 and isinstance(
+            prompt_messages[-1], UserPromptMessage
+        ):
+            if isinstance(prompt_messages[-1].content, str):
+                prompt_messages[-1].content += "\n```JSON\n{\n"
         else:
-            # append a user message
             prompt_messages.append(UserPromptMessage(content="```JSON\n{\n"))
 
     def get_num_tokens(
@@ -143,20 +158,15 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
         prompt_messages: list[PromptMessage],
         tools: list[PromptMessageTool] | None = None,
     ) -> int:
-        # tools is not supported yet
         return self._num_tokens_from_messages(prompt_messages)
 
-    def _num_tokens_from_messages(
-        self,
-        messages: list[PromptMessage],
-    ) -> int:
+    def _num_tokens_from_messages(self, messages: list[PromptMessage]) -> int:
         """Calculate num tokens for baichuan model"""
 
         def tokens(text: str):
             return self._get_num_tokens_by_gpt2(text)
 
         tokens_per_message = 3
-
         num_tokens = 0
         messages_dict = [self._convert_prompt_message_to_dict(m) for m in messages]
         for message in messages_dict:
@@ -167,12 +177,9 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
                     for item in value:
                         if isinstance(item, dict) and item["type"] == "text":
                             text += item["text"]
-
                     value = text
-
                 num_tokens += tokens(str(value))
         num_tokens += 3
-
         return num_tokens
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
@@ -195,39 +202,42 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
         user: str | None = None,
     ) -> LLMResult | Generator:
         instance = ErnieBotModel(
-            api_key=credentials["api_key"],
-            secret_key=credentials["secret_key"],
+            api_key=credentials["api_key"], secret_key=credentials["secret_key"]
         )
-
         user = user or "ErnieBotDefault"
-
-        # convert prompt messages to baichuan messages
         messages = [
             ErnieMessage(
                 content=message.content
                 if isinstance(message.content, str)
-                else "".join([content.data for content in message.content]),
+                else "".join([content.data for content in message.content or []]),
                 role=message.role.value,
             )
             for message in prompt_messages
         ]
-
-        # invoke model
         response = instance.generate(
             model=model,
             stream=stream,
             messages=messages,
             parameters=model_parameters,
             timeout=60,
-            tools=tools,
-            stop=stop,
+            tools=tools or [],
+            stop=stop or [],
             user=user,
         )
-
         if stream:
-            return self._handle_chat_generate_stream_response(model, prompt_messages, credentials, response)
+            return self._handle_chat_generate_stream_response(
+                model,
+                prompt_messages,
+                credentials,
+                response,  # type: ignore
+            )
         else:
-            return self._handle_chat_generate_response(model, prompt_messages, credentials, response)
+            return self._handle_chat_generate_response(
+                model,
+                prompt_messages,
+                credentials,
+                response,  # type: ignore
+            )
 
     def _convert_prompt_message_to_dict(self, message: PromptMessage) -> dict:
         """
@@ -247,13 +257,15 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
             message_dict = {"role": "system", "content": message.content}
         else:
             raise ValueError(f"Unknown message type {type(message)}")
-
         return message_dict
 
     def _handle_chat_generate_response(
-        self, model: str, prompt_messages: list[PromptMessage], credentials: dict, response: ErnieMessage
+        self,
+        model: str,
+        prompt_messages: list[PromptMessage],
+        credentials: dict,
+        response: ErnieMessage,
     ) -> LLMResult:
-        # convert baichuan message to llm result
         usage = self._calc_response_usage(
             model=model,
             credentials=credentials,
@@ -287,7 +299,9 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
                     prompt_messages=prompt_messages,
                     delta=LLMResultChunkDelta(
                         index=0,
-                        message=AssistantPromptMessage(content=message.content, tool_calls=[]),
+                        message=AssistantPromptMessage(
+                            content=message.content, tool_calls=[]
+                        ),
                         usage=usage,
                         finish_reason=message.stop_reason or None,
                     ),
@@ -298,7 +312,9 @@ class ErnieBotLargeLanguageModel(LargeLanguageModel):
                     prompt_messages=prompt_messages,
                     delta=LLMResultChunkDelta(
                         index=0,
-                        message=AssistantPromptMessage(content=message.content, tool_calls=[]),
+                        message=AssistantPromptMessage(
+                            content=message.content, tool_calls=[]
+                        ),
                         finish_reason=message.stop_reason or None,
                     ),
                 )
