@@ -15,8 +15,10 @@ from core.model_runtime.entities.llm_entities import LLMMode, LLMResult, LLMResu
 from core.model_runtime.entities.message_entities import (
     AssistantPromptMessage,
     PromptMessage,
+    PromptMessageContentUnionTypes,
     PromptMessageContentType,
     PromptMessageTool,
+    TextPromptMessageContent,
     SystemPromptMessage,
     UserPromptMessage,
 )
@@ -487,7 +489,7 @@ if you are not sure about the structure.
     def _invoke_result_generator(
         self,
         model: str,
-        result: Generator,
+        result: Generator[LLMResultChunk, None, None],
         credentials: dict,
         prompt_messages: Sequence[PromptMessage],
         model_parameters: dict,
@@ -504,10 +506,20 @@ if you are not sure about the structure.
         :return: result generator
         """
         callbacks = callbacks or []
-        assistant_message = AssistantPromptMessage(content="")
+        message_content: list[PromptMessageContentUnionTypes] = []
         usage = None
         system_fingerprint = None
         real_model = model
+
+        def _update_message_content(content: str | list[PromptMessageContentUnionTypes] | None):
+            if not content:
+                return
+            if isinstance(content, list):
+                message_content.extend(content)
+                return
+            if isinstance(content, str):
+                message_content.append(TextPromptMessageContent(data=content))
+                return
 
         try:
             for chunk in result:
@@ -530,7 +542,8 @@ if you are not sure about the structure.
                     callbacks=callbacks,
                 )
 
-                assistant_message.content += chunk.delta.message.content
+                _update_message_content(chunk.delta.message.content)
+
                 real_model = chunk.model
                 if chunk.delta.usage:
                     usage = chunk.delta.usage
@@ -540,6 +553,7 @@ if you are not sure about the structure.
         except Exception as e:
             raise self._transform_invoke_error(e)
 
+        assistant_message = AssistantPromptMessage(content=message_content)
         self._trigger_after_invoke_callbacks(
             model=model,
             result=LLMResult(

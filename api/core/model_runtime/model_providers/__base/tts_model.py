@@ -46,7 +46,7 @@ class TTSModel(AIModel):
             return self._invoke(
                 model=model,
                 credentials=credentials,
-                user=user,
+                user=user or "unknown",
                 content_text=content_text,
                 voice=voice,
                 tenant_id=tenant_id,

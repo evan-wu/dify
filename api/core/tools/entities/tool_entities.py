@@ -278,8 +278,7 @@ class ToolParameter(PluginParameter):
         :param required: if the parameter is required
         :param options: the options of the parameter
         """
-        # convert options to PluginParameterOption
-        # FIXME fix the type error
+        # convert options to PluginParameterOption(ToolParameterOption)
         if options:
             option_objs = [
                 PluginParameterOption(value=option, label=I18nObject(en_US=option, zh_Hans=option))

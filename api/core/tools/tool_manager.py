@@ -10,7 +10,7 @@ from yarl import URL
 
 import contexts
 from core.plugin.entities.plugin import ToolProviderID
-from core.plugin.manager.tool import PluginToolManager
+from core.plugin.impl.tool import PluginToolManager
 from core.tools.__base.tool_provider import ToolProviderController
 from core.tools.__base.tool_runtime import ToolRuntime
 from core.tools.plugin_tool.provider import PluginToolProviderController
@@ -527,9 +527,9 @@ class ToolManager:
                         cls._builtin_tools_labels[tool.entity.identity.name] = tool.entity.identity.label
                     yield provider
 
-                except Exception as e:
+                except Exception:
                     logger.error(f"load builtin provider {provider_path}")
-                    logger.exception(e)
+                    logger.exception(f"load builtin provider {provider_path}")
                     continue
         # set builtin providers loaded
         cls._builtin_providers_loaded = True
@@ -645,10 +645,10 @@ class ToolManager:
                 )
 
                 workflow_provider_controllers: list[WorkflowToolProviderController] = []
-                for provider in workflow_providers:
+                for workflow_provider in workflow_providers:
                     try:
                         workflow_provider_controllers.append(
-                            ToolTransformService.workflow_provider_to_controller(db_provider=provider)
+                            ToolTransformService.workflow_provider_to_controller(db_provider=workflow_provider)
                         )
                     except Exception:
                         # app has been deleted

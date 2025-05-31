@@ -2,6 +2,7 @@ import type {
   Edge as ReactFlowEdge,
   Node as ReactFlowNode,
   Viewport,
+  XYPosition,
 } from 'reactflow'
 import type { Resolution, TransferMethod } from '@/types/app'
 import type { ToolDefaultValue } from '@/app/components/workflow/block-selector/types'
@@ -84,6 +85,7 @@ export type CommonNodeType<T = {}> = {
   type: BlockEnum
   width?: number
   height?: number
+  position?: XYPosition
   _loopLength?: number
   _loopIndex?: number
   isInLoop?: boolean
@@ -197,6 +199,7 @@ export type InputVar = {
   hint?: string
   options?: string[]
   value_selector?: ValueSelector
+  hide: boolean
 } & Partial<UploadFileSetting>
 
 export type ModelConfig = {
