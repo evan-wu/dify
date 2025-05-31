@@ -253,6 +253,7 @@ const translation = {
     'loop-start': 'Loop Start',
     'loop': 'Loop',
     'loop-end': 'Exit Loop',
+    'race': 'Race',
   },
   blocksAbout: {
     'start': 'Define the initial parameters for launching a workflow',
@@ -275,6 +276,7 @@ const translation = {
     'document-extractor': 'Used to parse uploaded documents into text content that is easily understandable by LLM.',
     'list-operator': 'Used to filter or sort array content.',
     'agent': 'Invoking large language models to answer questions or process natural language',
+    'race': 'Execute parallel branches and return the result of the fastest or best-performing branch based on the racing strategy.',
   },
   operator: {
     zoomIn: 'Zoom In',
@@ -756,6 +758,60 @@ const translation = {
       loopNode: 'Loop Node',
       currentLoopCount: 'Current loop count: {{count}}',
       totalLoopCount: 'Total loop count: {{count}}',
+    },
+    race: {
+      title: 'Race',
+      noVarTip: 'Add variables to participate in the race',
+      competitors: 'competitors',
+      winners: 'winners🏅',
+      strategy: {
+        title: 'Race Strategy',
+        firstComplete: 'First Complete',
+        fastestValid: 'Fastest Valid',
+        timeoutBest: 'Timeout Best',
+        qualityRace: 'Quality Race',
+      },
+      winCondition: {
+        title: 'Win Condition',
+        anyResult: 'Any Result',
+        noError: 'No Error',
+        customValidation: 'Custom Validation',
+      },
+      timeout: {
+        title: 'Timeout (seconds)',
+        description: 'Maximum time to wait for race completion',
+      },
+      maxWinners: {
+        title: 'Maximum Winners',
+        description: 'Maximum number of winners to return',
+      },
+      variables: {
+        title: 'Variables to Race',
+        add: 'Add Variable',
+        noVariables: 'No variables configured for racing',
+      },
+      validationExpression: {
+        title: 'Validation Expression',
+        placeholder: 'e.g., result.status === "success"',
+        description: 'JavaScript expression to validate race results',
+      },
+      scoringExpression: {
+        title: 'Scoring Expression',
+        placeholder: 'e.g., result.quality * 100',
+        description: 'JavaScript expression to score race results (higher is better)',
+      },
+      advanced: {
+        title: 'Advanced Options',
+        failOnTimeout: 'Fail on timeout',
+        failOnAllErrors: 'Fail if all branches error',
+      },
+      output: {
+        raceWinner: 'The winning result from the race',
+        raceStatus: 'Status of the race (completed, timeout, failed)',
+        raceTime: 'Total time taken for the race in milliseconds',
+        totalCompetitors: 'Total number of competing branches',
+        totalWinners: 'Total number of winning branches',
+      },
     },
     note: {
       addNote: 'Add Note',

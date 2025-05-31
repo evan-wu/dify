@@ -500,6 +500,16 @@ class GraphEngine:
         if not parallel:
             raise GraphRunFailedError(f"Parallel {parallel_id} not found.")
 
+        # Check if the end node is a Race node with first_complete strategy
+        should_terminate_on_first_complete = False
+        if parallel.end_to_node_id:
+            end_node_config = self.graph.node_id_config_mapping.get(parallel.end_to_node_id)
+            if end_node_config:
+                end_node_data = end_node_config.get("data", {})
+                if (end_node_data.get("type") == "race" and 
+                    end_node_data.get("race_strategy") == "first_complete"):
+                    should_terminate_on_first_complete = True
+
         # run parallel nodes, run in new thread and use queue to get results
         q: queue.Queue = queue.Queue()
 
@@ -543,7 +553,12 @@ class GraphEngine:
                 if not isinstance(event, BaseAgentEvent) and event.parallel_id == parallel_id:
                     if isinstance(event, ParallelBranchRunSucceededEvent):
                         succeeded_count += 1
-                        if succeeded_count == len(futures):
+                        
+                        # For Race nodes with first_complete strategy, terminate after first completion
+                        if should_terminate_on_first_complete and succeeded_count >= 1:
+                            q.put(None)
+                        # Original behavior: wait for all branches
+                        elif not should_terminate_on_first_complete and succeeded_count == len(futures):
                             q.put(None)
 
                         continue
@@ -552,8 +567,10 @@ class GraphEngine:
             except queue.Empty:
                 continue
 
-        # wait all threads
-        wait(futures)
+        # Only wait all threads if we're not using first complete strategy
+        # If using first complete, we've already processed the first result and can proceed
+        if not should_terminate_on_first_complete:
+            wait(futures)
 
         # get final node id
         final_node_id = parallel.end_to_node_id

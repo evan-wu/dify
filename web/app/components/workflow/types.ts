@@ -40,6 +40,7 @@ export enum BlockEnum {
   Loop = 'loop',
   LoopStart = 'loop-start',
   LoopEnd = 'loop-end',
+  Race = 'race',
 }
 
 export enum ControlMode {

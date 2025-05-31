@@ -26,6 +26,7 @@ class NodeType(StrEnum):
     DOCUMENT_EXTRACTOR = "document-extractor"
     LIST_OPERATOR = "list-operator"
     AGENT = "agent"
+    RACE = "race"  # New node type for racing parallel branches
 
 
 class ErrorStrategy(StrEnum):

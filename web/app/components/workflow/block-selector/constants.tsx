@@ -56,6 +56,11 @@ export const BLOCKS: Block[] = [
     title: 'Loop',
   },
   {
+    classification: BlockClassificationEnum.Logic,
+    type: BlockEnum.Race,
+    title: 'Race',
+  },
+  {
     classification: BlockClassificationEnum.Transform,
     type: BlockEnum.Code,
     title: 'Code',
