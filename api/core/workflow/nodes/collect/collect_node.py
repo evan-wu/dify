@@ -6,7 +6,8 @@ from typing import Any, cast
 
 from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
+from core.workflow.entities.node_entities import NodeRunResult
+from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionMetadataKey, WorkflowNodeExecutionStatus
 from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.graph_engine.entities.event import (
     BaseGraphEvent,
@@ -29,7 +30,7 @@ from core.workflow.nodes.collect.entities import CollectNodeData
 from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
 from core.workflow.utils.condition.processor import ConditionProcessor
 from extensions.ext_database import db
-from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect
+from models.workflow import Workflow, WorkflowRunningCollect
 
 logger = logging.getLogger(__name__)
 
@@ -125,9 +126,9 @@ class CollectNode(BaseNode):
                     if not metadata:
                         metadata = {}
 
-                    if NodeRunMetadataKey.ITERATION_ID not in metadata:
-                        metadata[NodeRunMetadataKey.ITERATION_ID] = self.node_id
-                        metadata[NodeRunMetadataKey.ITERATION_INDEX] = 0
+                    if WorkflowNodeExecutionMetadataKey.ITERATION_ID not in metadata:
+                        metadata[WorkflowNodeExecutionMetadataKey.ITERATION_ID] = self.node_id
+                        metadata[WorkflowNodeExecutionMetadataKey.ITERATION_INDEX] = 0
                         event.route_node_state.node_run_result.metadata = metadata
 
                 yield event

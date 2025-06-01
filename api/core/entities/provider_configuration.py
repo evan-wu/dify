@@ -893,7 +893,7 @@ class ProviderConfiguration(BaseModel):
         model_types: Sequence[ModelType],
         provider_instance: ModelProvider,
         model_setting_map: dict[ModelType, dict[str, ModelSettings]],
-        model: Optional[str] = None,
+            model: Optional[str] = None,
     ) -> list[ModelWithProviderEntity]:
         """
         Get custom provider models.

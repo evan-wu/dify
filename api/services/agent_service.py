@@ -6,7 +6,7 @@ from flask_login import current_user
 
 import contexts
 from core.app.app_config.easy_ui_based_app.agent.manager import AgentConfigManager
-from core.plugin.impl.agent import PluginAgentClient
+from core.plugin.impl.agent import PluginAgentManager
 from core.plugin.impl.exc import PluginDaemonClientSideError
 from core.tools.tool_manager import ToolManager
 from extensions.ext_database import db
@@ -161,7 +161,7 @@ class AgentService:
         """
         List agent providers
         """
-        manager = PluginAgentClient()
+        manager = PluginAgentManager()
         return manager.fetch_agent_strategy_providers(tenant_id)
 
     @classmethod
@@ -169,7 +169,7 @@ class AgentService:
         """
         Get agent provider
         """
-        manager = PluginAgentClient()
+        manager = PluginAgentManager()
         try:
             return manager.fetch_agent_strategy_provider(tenant_id, provider_name)
         except PluginDaemonClientSideError as e:

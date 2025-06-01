@@ -35,7 +35,7 @@ from core.model_runtime.schema_validators.model_credential_schema_validator impo
 from core.model_runtime.schema_validators.provider_credential_schema_validator import ProviderCredentialSchemaValidator
 from core.plugin.entities.plugin import ModelProviderID
 from core.plugin.entities.plugin_daemon import PluginModelProviderEntity
-from core.plugin.manager.asset import PluginAssetManager
+from core.plugin.impl.asset import PluginAssetManager
 
 logger = logging.getLogger(__name__)
 

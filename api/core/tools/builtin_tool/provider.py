@@ -29,10 +29,13 @@ class BuiltinToolProviderController(ToolProviderController):
         except Exception as e:
             raise ToolProviderNotFoundError(f"can not load provider yaml for {provider}: {e}")
 
-        if "credentials_for_provider" in provider_yaml and provider_yaml["credentials_for_provider"] is not None:
-            # set credentials name
-            for credential_name in provider_yaml["credentials_for_provider"]:
-                provider_yaml["credentials_for_provider"][credential_name]["name"] = credential_name
+        if "credentials_for_provider" in provider_yaml:
+            if provider_yaml["credentials_for_provider"] is not None:
+                # set credentials name
+                for credential_name in provider_yaml["credentials_for_provider"]:
+                    provider_yaml["credentials_for_provider"][credential_name]["name"] = credential_name
+            else:
+                del provider_yaml["credentials_for_provider"]  # None is removed
 
         credentials_schema = []
         for credential in provider_yaml.get("credentials_for_provider", {}):

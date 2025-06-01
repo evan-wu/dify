@@ -58,7 +58,8 @@ from core.workflow.nodes.node_mapping import NODE_TYPE_CLASSES_MAPPING
 from extensions.ext_database import db
 from factories import variable_factory
 from models.enums import UserFrom
-from models.workflow import Workflow, WorkflowNodeExecutionStatus, WorkflowRunningCollect, WorkflowType
+from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
+from models.workflow import Workflow, WorkflowRunningCollect, WorkflowType
 
 logger = logging.getLogger(__name__)
 
