@@ -20,11 +20,13 @@ class NodeType(StrEnum):
     LOOP_END = "loop-end"
     ITERATION = "iteration"
     ITERATION_START = "iteration-start"  # Fake start node for iteration.
+    COLLECT = "collect"
     PARAMETER_EXTRACTOR = "parameter-extractor"
     VARIABLE_ASSIGNER = "assigner"
     DOCUMENT_EXTRACTOR = "document-extractor"
     LIST_OPERATOR = "list-operator"
     AGENT = "agent"
+    RACE = "race"  # New node type for racing parallel branches
 
 
 class ErrorStrategy(StrEnum):

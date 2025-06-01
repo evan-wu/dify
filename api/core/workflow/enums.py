@@ -10,6 +10,7 @@ class SystemVariableKey(StrEnum):
     FILES = "files"
     CONVERSATION_ID = "conversation_id"
     USER_ID = "user_id"
+    MESSAGE_HISTORY = "message_history"
     DIALOGUE_COUNT = "dialogue_count"
     APP_ID = "app_id"
     WORKFLOW_ID = "workflow_id"

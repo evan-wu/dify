@@ -158,6 +158,7 @@ class AnswerStreamGeneratorRouter:
                     NodeType.IF_ELSE,
                     NodeType.QUESTION_CLASSIFIER,
                     NodeType.ITERATION,
+                    NodeType.COLLECT,
                     NodeType.LOOP,
                     NodeType.VARIABLE_ASSIGNER,
                 }

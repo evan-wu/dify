@@ -4,6 +4,7 @@ from core.workflow.nodes.agent.agent_node import AgentNode
 from core.workflow.nodes.answer import AnswerNode
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.code import CodeNode
+from core.workflow.nodes.collect.collect_node import CollectNode
 from core.workflow.nodes.document_extractor import DocumentExtractorNode
 from core.workflow.nodes.end import EndNode
 from core.workflow.nodes.enums import NodeType
@@ -16,6 +17,7 @@ from core.workflow.nodes.llm import LLMNode
 from core.workflow.nodes.loop import LoopEndNode, LoopNode, LoopStartNode
 from core.workflow.nodes.parameter_extractor import ParameterExtractorNode
 from core.workflow.nodes.question_classifier import QuestionClassifierNode
+from core.workflow.nodes.race import RaceNode
 from core.workflow.nodes.start import StartNode
 from core.workflow.nodes.template_transform import TemplateTransformNode
 from core.workflow.nodes.tool import ToolNode
@@ -82,6 +84,10 @@ NODE_TYPE_CLASSES_MAPPING: Mapping[NodeType, Mapping[str, type[BaseNode]]] = {
         LATEST_VERSION: IterationNode,
         "1": IterationNode,
     },
+    NodeType.COLLECT: {
+        LATEST_VERSION: CollectNode,
+        "1": CollectNode,
+    },
     NodeType.ITERATION_START: {
         LATEST_VERSION: IterationStartNode,
         "1": IterationStartNode,
@@ -118,5 +124,9 @@ NODE_TYPE_CLASSES_MAPPING: Mapping[NodeType, Mapping[str, type[BaseNode]]] = {
     NodeType.AGENT: {
         LATEST_VERSION: AgentNode,
         "1": AgentNode,
+    },
+    NodeType.RACE: {
+        LATEST_VERSION: RaceNode,
+        "1": RaceNode,
     },
 }

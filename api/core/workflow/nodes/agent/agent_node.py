@@ -1,5 +1,6 @@
 import json
 from collections.abc import Generator, Mapping, Sequence
+import logging
 from typing import Any, Optional, cast
 
 from core.agent.entities import AgentToolEntity
@@ -26,6 +27,8 @@ from core.workflow.utils.variable_template_parser import VariableTemplateParser
 from extensions.ext_database import db
 from factories.agent_factory import get_plugin_agent_strategy
 from models.model import Conversation
+
+logger = logging.getLogger(__name__)
 
 
 class AgentNode(ToolNode):
@@ -84,6 +87,8 @@ class AgentNode(ToolNode):
                 conversation_id=conversation_id.text if conversation_id else None,
             )
         except Exception as e:
+            logger.error(f"Failed to invoke strategy: {node_data.agent_strategy_name}, {str(e)}")
+            logger.exception(e)
             yield RunCompletedEvent(
                 run_result=NodeRunResult(
                     status=WorkflowNodeExecutionStatus.FAILED,

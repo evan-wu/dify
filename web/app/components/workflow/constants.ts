@@ -22,6 +22,8 @@ import IterationStartDefault from './nodes/iteration-start/default'
 import AgentDefault from './nodes/agent/default'
 import LoopStartDefault from './nodes/loop-start/default'
 import LoopEndDefault from './nodes/loop-end/default'
+import CollectDefault from './nodes/collect/default'
+import RaceDefault from './nodes/race/default'
 
 type NodesExtraData = {
   author: string
@@ -240,6 +242,24 @@ export const NODES_EXTRA_DATA: Record<BlockEnum, NodesExtraData> = {
     getAvailableNextNodes: ListFilterDefault.getAvailableNextNodes,
     checkValid: AgentDefault.checkValid,
   },
+  [BlockEnum.Collect]: {
+    author: 'Evan',
+    about: '',
+    availablePrevNodes: [],
+    availableNextNodes: [],
+    getAvailablePrevNodes: CollectDefault.getAvailablePrevNodes,
+    getAvailableNextNodes: CollectDefault.getAvailableNextNodes,
+    checkValid: CollectDefault.checkValid,
+  },
+  [BlockEnum.Race]: {
+    author: 'Evan',
+    about: '',
+    availablePrevNodes: [],
+    availableNextNodes: [],
+    getAvailablePrevNodes: RaceDefault.getAvailablePrevNodes,
+    getAvailableNextNodes: RaceDefault.getAvailableNextNodes,
+    checkValid: RaceDefault.checkValid,
+  },
 }
 
 export const NODES_INITIAL_DATA = {
@@ -399,6 +419,18 @@ export const NODES_INITIAL_DATA = {
     desc: '',
     ...AgentDefault.defaultValue,
   },
+  [BlockEnum.Collect]: {
+    type: BlockEnum.Collect,
+    title: '',
+    desc: '',
+    ...CollectDefault.defaultValue,
+  },
+  [BlockEnum.Race]: {
+    type: BlockEnum.Race,
+    title: '',
+    desc: '',
+    ...RaceDefault.defaultValue,
+  },
 }
 export const MAX_ITERATION_PARALLEL_NUM = 10
 export const MIN_ITERATION_PARALLEL_NUM = 1
@@ -471,7 +503,7 @@ export const SUPPORT_OUTPUT_VARS_NODE = [
   BlockEnum.HttpRequest, BlockEnum.Tool, BlockEnum.VariableAssigner, BlockEnum.VariableAggregator, BlockEnum.QuestionClassifier,
   BlockEnum.ParameterExtractor, BlockEnum.Iteration, BlockEnum.Loop,
   BlockEnum.DocExtractor, BlockEnum.ListFilter,
-  BlockEnum.Agent,
+  BlockEnum.Agent, BlockEnum.Collect, BlockEnum.Race,
 ]
 
 export const LLM_OUTPUT_STRUCT: Var[] = [
@@ -544,6 +576,25 @@ export const PARAMETER_EXTRACTOR_COMMON_STRUCT: Var[] = [
   {
     variable: '__reason',
     type: VarType.string,
+  },
+]
+
+export const RACE_OUTPUT_STRUCT: Var[] = [
+  {
+    variable: 'race_winner',
+    type: VarType.object,
+  },
+  {
+    variable: 'race_status',
+    type: VarType.string,
+  },
+  {
+    variable: 'total_competitors',
+    type: VarType.number,
+  },
+  {
+    variable: 'total_winners',
+    type: VarType.number,
   },
 ]
 

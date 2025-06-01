@@ -60,6 +60,8 @@ const getIcon = (type: BlockEnum, className: string) => {
     [BlockEnum.DocExtractor]: <DocsExtractor className={className} />,
     [BlockEnum.ListFilter]: <ListFilter className={className} />,
     [BlockEnum.Agent]: <Agent className={className} />,
+    [BlockEnum.Collect]: <Iteration className={className} />,
+    [BlockEnum.Race]: <IfElse className={className} />,
   }[type]
 }
 const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
@@ -83,6 +85,8 @@ const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
   [BlockEnum.DocExtractor]: 'bg-util-colors-green-green-500',
   [BlockEnum.ListFilter]: 'bg-util-colors-cyan-cyan-500',
   [BlockEnum.Agent]: 'bg-util-colors-indigo-indigo-500',
+  [BlockEnum.Collect]: 'bg-util-colors-orange-orange-500',
+  [BlockEnum.Race]: 'bg-util-colors-orange-orange-500',
 }
 const BlockIcon: FC<BlockIconProps> = ({
   type,

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -22,7 +23,8 @@ class ConditionProcessor:
         for condition in conditions:
             variable = variable_pool.get(condition.variable_selector)
             if variable is None:
-                raise ValueError(f"Variable {condition.variable_selector} not found")
+                # raise ValueError(f"Variable {condition.variable_selector} not found")
+                logging.warning(f"Variable {condition.variable_selector} not found, not using it for condition check")
 
             if isinstance(variable, ArrayFileSegment) and condition.comparison_operator in {
                 "contains",

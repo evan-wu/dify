@@ -82,6 +82,8 @@ def _build_variable_from_mapping(*, mapping: Mapping[str, Any], selector: Sequen
     """
     if (value_type := mapping.get("value_type")) is None:
         raise VariableError("missing value type")
+    if not mapping.get("name"):
+        mapping["name"] = "anonymous"
     if (value := mapping.get("value")) is None:
         raise VariableError("missing value")
 

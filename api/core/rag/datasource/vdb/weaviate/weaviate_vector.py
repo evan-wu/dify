@@ -231,20 +231,22 @@ class WeaviateVector(BaseVector):
             List of Documents most similar to the query.
         """
         collection_name = self._collection_name
-        content: dict[str, Any] = {"concepts": [query]}
         properties = self._attributes
         properties.append(Field.TEXT_KEY.value)
-        if kwargs.get("search_distance"):
-            content["certainty"] = kwargs.get("search_distance")
+
         query_obj = self._client.query.get(collection_name, properties)
+        operands = []
+        if kwargs.get("where_filter"):
+            query_obj = query_obj.with_where(kwargs.get("where_filter"))
+
         document_ids_filter = kwargs.get("document_ids_filter")
         if document_ids_filter:
-            operands = []
             for document_id_filter in document_ids_filter:
                 operands.append({"path": ["document_id"], "operator": "Equal", "valueText": document_id_filter})
+        if operands:
             where_filter = {"operator": "Or", "operands": operands}
             query_obj = query_obj.with_where(where_filter)
-        query_obj = query_obj.with_additional(["vector"])
+        query_obj = query_obj.with_additional(["vector", "score"])
         properties = ["text"]
         result = query_obj.with_bm25(query=query, properties=properties).with_limit(kwargs.get("top_k", 4)).do()
         if "errors" in result:
@@ -253,16 +255,28 @@ class WeaviateVector(BaseVector):
         for res in result["data"]["Get"][collection_name]:
             text = res.pop(Field.TEXT_KEY.value)
             additional = res.pop("_additional")
-            docs.append(Document(page_content=text, vector=additional["vector"], metadata=res))
+            # Include the BM25 score in metadata
+            metadata = res
+            metadata["score"] = float(additional.get("score", .0))
+            docs.append(Document(
+                page_content=text,
+                vector=additional["vector"],
+                metadata=metadata
+            ))
         return docs
 
     def _default_schema(self, index_name: str) -> dict:
+        # for chinese - gse, trigram, for english - word (default)
         return {
             "class": index_name,
             "properties": [
                 {
                     "name": "text",
                     "dataType": ["text"],
+                    "description": "bm25 search text",
+                    "tokenization": "gse",
+                    "indexFilterable": True,
+                    "indexSearchable": True,
                 }
             ],
         }

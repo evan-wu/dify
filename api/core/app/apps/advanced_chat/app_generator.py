@@ -183,6 +183,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             app_id=application_generate_entity.app_config.app_id,
             triggered_from=WorkflowNodeExecutionTriggeredFrom.WORKFLOW_RUN,
         )
+        logging.info(f"Start generation from workflow: {app_model.name}")
 
         return self._generate(
             workflow=workflow,

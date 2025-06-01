@@ -254,6 +254,7 @@ const translation = {
     'loop-start': '循环开始',
     'loop': '循环',
     'loop-end': '退出循环',
+    'race': '竞赛',
   },
   blocksAbout: {
     'start': '定义一个 workflow 流程启动的初始参数',
@@ -276,6 +277,7 @@ const translation = {
     'document-extractor': '用于将用户上传的文档解析为 LLM 便于理解的文本内容。',
     'list-operator': '用于过滤或排序数组内容。',
     'agent': '调用大型语言模型回答问题或处理自然语言',
+    'race': '执行并行分支并根据竞赛策略返回最快或表现最佳分支的结果。',
   },
   operator: {
     zoomIn: '放大',
@@ -763,6 +765,60 @@ const translation = {
       loopNode: '循环节点',
       currentLoopCount: '当前循环次数：{{count}}',
       totalLoopCount: '总循环次数：{{count}}',
+    },
+    race: {
+      title: '竞赛',
+      noVarTip: '添加参与竞赛的变量',
+      competitors: '个竞赛者',
+      winners: '个胜出者🏅',
+      strategy: {
+        title: '竞赛策略',
+        firstComplete: '首先完成',
+        fastestValid: '最快有效',
+        timeoutBest: '超时最优',
+        qualityRace: '质量竞赛',
+      },
+      winCondition: {
+        title: '获胜条件',
+        anyResult: '任何结果',
+        noError: '无错误',
+        customValidation: '自定义验证',
+      },
+      timeout: {
+        title: '超时时间（秒）',
+        description: '等待竞赛完成的最大时间',
+      },
+      maxWinners: {
+        title: '最大获胜者数量',
+        description: '返回的最大获胜者数量',
+      },
+      variables: {
+        title: '参与竞赛的变量',
+        add: '添加变量',
+        noVariables: '未配置参与竞赛的变量',
+      },
+      validationExpression: {
+        title: '验证表达式',
+        placeholder: '例如：result.status === "success"',
+        description: '用于验证竞赛结果的 JavaScript 表达式',
+      },
+      scoringExpression: {
+        title: '评分表达式',
+        placeholder: '例如：result.quality * 100',
+        description: '用于评分竞赛结果的 JavaScript 表达式（数值越高越好）',
+      },
+      advanced: {
+        title: '高级选项',
+        failOnTimeout: '超时时失败',
+        failOnAllErrors: '所有分支都出错时失败',
+      },
+      output: {
+        raceWinner: '竞赛的获胜结果',
+        raceStatus: '竞赛状态（已完成、超时、失败）',
+        raceTime: '竞赛总用时（毫秒）',
+        totalCompetitors: '参与竞赛的分支总数',
+        totalWinners: '获胜分支总数',
+      },
     },
     note: {
       addNote: '添加注释',

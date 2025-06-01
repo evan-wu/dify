@@ -286,7 +286,8 @@ class LLMNode(BaseNode[LLMNodeData]):
                 )
             )
         except Exception as e:
-            logger.exception("error while executing llm node")
+            logger.error("error while executing llm node")
+            logger.exception(e)
             yield RunCompletedEvent(
                 run_result=NodeRunResult(
                     status=WorkflowNodeExecutionStatus.FAILED,

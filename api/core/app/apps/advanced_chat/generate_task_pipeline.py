@@ -565,6 +565,12 @@ class AdvancedChatAppGenerateTaskPipeline:
                         event=err_event, session=session, message_id=self._message_id
                     )
 
+                    # Save message if there is partial result
+                    if self._task_state and self._task_state.answer:
+                        self._save_message(graph_runtime_state=graph_runtime_state)
+
+                    session.commit()
+
                 yield workflow_finish_resp
                 yield self._base_task_pipeline._error_to_stream_response(err)
                 break

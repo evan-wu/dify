@@ -38,6 +38,10 @@ import ListFilterNode from './list-operator/node'
 import ListFilterPanel from './list-operator/panel'
 import AgentNode from './agent/node'
 import AgentPanel from './agent/panel'
+import CollectNode from './collect/node'
+import CollectPanel from './collect/panel'
+import RaceNode from './race/node'
+import RacePanel from './race/panel'
 import { TransferMethod } from '@/types/app'
 
 export const NodeComponentMap: Record<string, ComponentType<any>> = {
@@ -61,6 +65,8 @@ export const NodeComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.DocExtractor]: DocExtractorNode,
   [BlockEnum.ListFilter]: ListFilterNode,
   [BlockEnum.Agent]: AgentNode,
+  [BlockEnum.Collect]: CollectNode,
+  [BlockEnum.Race]: RaceNode,
 }
 
 export const PanelComponentMap: Record<string, ComponentType<any>> = {
@@ -84,6 +90,8 @@ export const PanelComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.DocExtractor]: DocExtractorPanel,
   [BlockEnum.ListFilter]: ListFilterPanel,
   [BlockEnum.Agent]: AgentPanel,
+  [BlockEnum.Collect]: CollectPanel,
+  [BlockEnum.Race]: RacePanel,
 }
 
 export const CUSTOM_NODE_TYPE = 'custom'

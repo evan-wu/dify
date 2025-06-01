@@ -809,6 +809,31 @@ class ConversationVariable(Base):
         return variable_factory.build_conversation_variable_from_mapping(mapping)
 
 
+class WorkflowRunningCollect(db.Model):
+    """
+    Workflow Collect Node running data, will be deleted if the Collect Node completed.
+    """
+    __tablename__ = 'workflow_running_collects'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='workflow_running_collect_pkey'),
+        db.Index('workflow_running_collect_conv_idx', 'tenant_id', 'app_id', 'workflow_id', 'workflow_version',
+                 'conversation_id'),
+    )
+    id = db.Column(StringUUID, server_default=db.text('uuid_generate_v4()'))
+    tenant_id = db.Column(StringUUID, nullable=False)
+    app_id = db.Column(StringUUID, nullable=False)
+    workflow_id = db.Column(StringUUID, nullable=False)
+    workflow_version = db.Column(db.String(255), nullable=False)
+    conversation_id = db.Column(db.String(255), nullable=False)
+    collect_node_id = db.Column(db.String(255), nullable=False)
+    current_runs = db.Column(db.Integer, nullable=False)
+    created_from = db.Column(db.String(255), nullable=False)
+    variable_dict = db.Column(db.Text)
+    created_by = db.Column(StringUUID, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+    updated_at = db.Column(db.DateTime)
+
+
 # Only `sys.query` and `sys.files` could be modified.
 _EDITABLE_SYSTEM_VARIABLE = frozenset(["query", "files"])
 

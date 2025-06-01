@@ -29,6 +29,7 @@ import {
   LLM_OUTPUT_STRUCT,
   PARAMETER_EXTRACTOR_COMMON_STRUCT,
   QUESTION_CLASSIFIER_OUTPUT_STRUCT,
+  RACE_OUTPUT_STRUCT,
   SUPPORT_OUTPUT_VARS_NODE,
   TEMPLATE_TRANSFORM_OUTPUT_STRUCT,
   TOOL_OUTPUT_STRUCT,
@@ -36,6 +37,7 @@ import {
 import type { PromptItem } from '@/models/debug'
 import { VAR_REGEX } from '@/config'
 import type { AgentNodeType } from '../../../agent/types'
+import type { RaceNodeType } from '../../../race/types'
 
 export const isSystemVar = (valueSelector: ValueSelector) => {
   return valueSelector[0] === 'sys' || valueSelector[1] === 'sys'
@@ -454,6 +456,11 @@ const formatItem = (
         ...outputs,
         ...TOOL_OUTPUT_STRUCT,
       ]
+      break
+    }
+
+    case BlockEnum.Race: {
+      res.vars = [...RACE_OUTPUT_STRUCT]
       break
     }
 
@@ -1061,6 +1068,12 @@ export const getNodeUsedVars = (node: Node): ValueSelector[] => {
       res = valueSelectors
       break
     }
+
+    case BlockEnum.Race: {
+      const payload = data as RaceNodeType
+      res = payload.variables || []
+      break
+    }
   }
   return res || []
 }
@@ -1127,6 +1140,11 @@ export const getNodeUsedVarPassToServerKey = (node: Node, valueSelector: ValueSe
 
     case BlockEnum.ParameterExtractor: {
       res = 'query'
+      break
+    }
+
+    case BlockEnum.Race: {
+      res = `#${valueSelector.join('.')}#`
       break
     }
   }
@@ -1337,6 +1355,18 @@ export const updateNodeVars = (oldNode: Node, oldVarSelector: ValueSelector, new
           payload.variable = newVarSelector
         break
       }
+
+      case BlockEnum.Race: {
+        const payload = data as RaceNodeType
+        if (payload.variables) {
+          payload.variables = payload.variables.map((v) => {
+            if (v.join('.') === oldVarSelector.join('.'))
+              v = newVarSelector
+            return v
+          })
+        }
+        break
+      }
     }
   })
   return newNode
@@ -1488,6 +1518,16 @@ export const getNodeOutputVars = (node: Node, isChatMode: boolean): ValueSelecto
       res.push([id, 'result'])
       res.push([id, 'first_record'])
       res.push([id, 'last_record'])
+      break
+    }
+
+    case BlockEnum.Collect: {
+      res.push([id, 'output'])
+      break
+    }
+
+    case BlockEnum.Race: {
+      varsToValueSelectorList(RACE_OUTPUT_STRUCT, [id], res)
       break
     }
   }

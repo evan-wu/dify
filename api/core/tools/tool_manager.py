@@ -528,6 +528,7 @@ class ToolManager:
                     yield provider
 
                 except Exception:
+                    logger.error(f"load builtin provider {provider_path}")
                     logger.exception(f"load builtin provider {provider_path}")
                     continue
         # set builtin providers loaded

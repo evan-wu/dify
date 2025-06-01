@@ -2,6 +2,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any, Optional, cast
+from enum import Enum
 
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,15 @@ from core.workflow.nodes.answer.answer_stream_generate_router import AnswerStrea
 from core.workflow.nodes.answer.entities import AnswerStreamGenerateRoute
 from core.workflow.nodes.end.end_stream_generate_router import EndStreamGeneratorRouter
 from core.workflow.nodes.end.entities import EndStreamParam
+
+
+class ParallelCompletionStrategy(str, Enum):
+    """
+    Strategy for completing parallel execution.
+    """
+    WAIT_ALL = "wait_all"  # Wait for all branches to complete (default)
+    FIRST_COMPLETE = "first_complete"  # Complete when first branch finishes
+    TIMEOUT_FIRST = "timeout_first"  # Wait for timeout, then proceed with completed branches
 
 
 class GraphEdge(BaseModel):
@@ -30,6 +40,10 @@ class GraphParallel(BaseModel):
     """parent parallel start node id"""
     end_to_node_id: Optional[str] = None
     """end to node id"""
+    completion_strategy: ParallelCompletionStrategy = ParallelCompletionStrategy.WAIT_ALL
+    """completion strategy for this parallel section"""
+    timeout_seconds: Optional[float] = None
+    """timeout for timeout_first strategy"""
 
 
 class Graph(BaseModel):

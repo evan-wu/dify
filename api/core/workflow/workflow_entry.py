@@ -365,5 +365,5 @@ class WorkflowEntry:
                 input_value = file_factory.build_from_mappings(mappings=input_value, tenant_id=tenant_id)
 
             # append variable and value to variable pool
-            if variable_node_id != ENVIRONMENT_VARIABLE_NODE_ID:
+            if input_value and variable_node_id != ENVIRONMENT_VARIABLE_NODE_ID:
                 variable_pool.add([variable_node_id] + variable_key_list, input_value)
