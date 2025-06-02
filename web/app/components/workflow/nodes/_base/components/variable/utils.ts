@@ -17,6 +17,7 @@ import type { LoopNodeType } from '../../../loop/types'
 import type { ListFilterNodeType } from '../../../list-operator/types'
 import { OUTPUT_FILE_SUB_VARIABLES } from '../../../constants'
 import type { DocExtractorNodeType } from '../../../document-extractor/types'
+import type { CollectNodeType } from "../../../collect/types"
 import { BlockEnum, InputVarType, VarType } from '@/app/components/workflow/types'
 import type { StartNodeType } from '@/app/components/workflow/nodes/start/types'
 import type { ConversationVariable, EnvironmentVariable, Node, NodeOutPutVar, ValueSelector, Var } from '@/app/components/workflow/types'
@@ -201,6 +202,10 @@ const formatItem = (
         res.vars.push({
           variable: 'sys.dialogue_count',
           type: VarType.number,
+        })
+        res.vars.push({
+          variable: 'sys.message_history',
+          type: VarType.arrayObject,
         })
         res.vars.push({
           variable: 'sys.conversation_id',
@@ -435,6 +440,16 @@ const formatItem = (
         {
           variable: 'last_record',
           type: (data as ListFilterNodeType).item_var_type,
+        },
+      ]
+      break
+    }
+
+    case BlockEnum.Collect: {
+      res.vars = [
+        {
+          variable: 'output',
+          type: (data as CollectNodeType).output_type,
         },
       ]
       break
@@ -742,7 +757,7 @@ export const getVarType = ({
     conversationVariables,
   )
 
-  const isIterationInnerVar = parentNode?.data.type === BlockEnum.Iteration
+  const isIterationInnerVar = parentNode?.data.type === BlockEnum.Iteration || parentNode?.data.type === BlockEnum.Collect
   if (isIterationItem) {
     return getIterationItemType({
       valueSelector,
@@ -867,6 +882,20 @@ export const toNodeAvailableVars = ({
     environmentVariables,
     conversationVariables,
   )
+  const isInCollect = parentNode?.data.type === BlockEnum.Collect
+  if (isInCollect) {
+    const runsCountVar = {
+      nodeId: parentNode?.id,
+      title: '当前采集次数',
+      vars: [
+        {
+          variable: '_current_runs_',
+          type: VarType.number,
+        },
+      ],
+    }
+    beforeNodesOutputVars.unshift(<NodeOutPutVar>runsCountVar)
+  }
   const isInIteration = parentNode?.data.type === BlockEnum.Iteration
   if (isInIteration) {
     const iterationNode: any = parentNode

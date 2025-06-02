@@ -254,6 +254,7 @@ const translation = {
     'loop-start': '循环开始',
     'loop': '循环',
     'loop-end': '退出循环',
+    'collect': '采集',
     'race': '竞赛',
   },
   blocksAbout: {
@@ -277,6 +278,7 @@ const translation = {
     'document-extractor': '用于将用户上传的文档解析为 LLM 便于理解的文本内容。',
     'list-operator': '用于过滤或排序数组内容。',
     'agent': '调用大型语言模型回答问题或处理自然语言',
+    'collect': '采集用户的输入，直至采集成功。',
     'race': '执行并行分支并根据竞赛策略返回最快或表现最佳分支的结果。',
   },
   operator: {

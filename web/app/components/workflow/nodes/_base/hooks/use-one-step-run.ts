@@ -27,6 +27,7 @@ import VariableAssigner from '@/app/components/workflow/nodes/variable-assigner/
 import Assigner from '@/app/components/workflow/nodes/assigner/default'
 import ParameterExtractorDefault from '@/app/components/workflow/nodes/parameter-extractor/default'
 import IterationDefault from '@/app/components/workflow/nodes/iteration/default'
+import CollectDefault from '@/app/components/workflow/nodes/collect/default'
 import DocumentExtractorDefault from '@/app/components/workflow/nodes/document-extractor/default'
 import LoopDefault from '@/app/components/workflow/nodes/loop/default'
 import { ssePost } from '@/service/base'
@@ -45,6 +46,7 @@ const { checkValid: checkVariableAssignerValid } = VariableAssigner
 const { checkValid: checkAssignerValid } = Assigner
 const { checkValid: checkParameterExtractorValid } = ParameterExtractorDefault
 const { checkValid: checkIterationValid } = IterationDefault
+const { checkValid: checkCollectValid } = CollectDefault
 const { checkValid: checkDocumentExtractorValid } = DocumentExtractorDefault
 const { checkValid: checkLoopValid } = LoopDefault
 
@@ -62,6 +64,7 @@ const checkValidFns: Record<BlockEnum, Function> = {
   [BlockEnum.VariableAggregator]: checkVariableAssignerValid,
   [BlockEnum.ParameterExtractor]: checkParameterExtractorValid,
   [BlockEnum.Iteration]: checkIterationValid,
+  [BlockEnum.Collect]: checkCollectValid,
   [BlockEnum.DocExtractor]: checkDocumentExtractorValid,
   [BlockEnum.Loop]: checkLoopValid,
 } as any
@@ -110,7 +113,7 @@ const useOneStepRun = <T>({
   const { getBeforeNodesInSameBranch, getBeforeNodesInSameBranchIncludeParent } = useWorkflow() as any
   const conversationVariables = useStore(s => s.conversationVariables)
   const isChatMode = useIsChatMode()
-  const isIteration = data.type === BlockEnum.Iteration
+  const isIteration = data.type === BlockEnum.Iteration || data.type === BlockEnum.Collect
   const isLoop = data.type === BlockEnum.Loop
 
   const availableNodes = getBeforeNodesInSameBranch(id)

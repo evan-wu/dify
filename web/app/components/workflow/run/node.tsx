@@ -87,7 +87,7 @@ const NodePanel: FC<Props> = ({
     setCollapseState(!nodeInfo.expand)
   }, [nodeInfo.expand, setCollapseState])
 
-  const isIterationNode = nodeInfo.node_type === BlockEnum.Iteration && !!nodeInfo.details?.length
+  const isIterationNode = (nodeInfo.node_type === BlockEnum.Iteration || nodeInfo.node_type === BlockEnum.Collect) && !!nodeInfo.details?.length
   const isLoopNode = nodeInfo.node_type === BlockEnum.Loop && !!nodeInfo.details?.length
   const isRetryNode = hasRetryNode(nodeInfo.node_type) && !!nodeInfo.retryDetail?.length
   const isAgentNode = nodeInfo.node_type === BlockEnum.Agent && !!nodeInfo.agentLog?.length

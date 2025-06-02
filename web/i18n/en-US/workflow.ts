@@ -253,6 +253,7 @@ const translation = {
     'loop-start': 'Loop Start',
     'loop': 'Loop',
     'loop-end': 'Exit Loop',
+    'collect': 'Collect',
     'race': 'Race',
   },
   blocksAbout: {
@@ -276,6 +277,7 @@ const translation = {
     'document-extractor': 'Used to parse uploaded documents into text content that is easily understandable by LLM.',
     'list-operator': 'Used to filter or sort array content.',
     'agent': 'Invoking large language models to answer questions or process natural language',
+    'collect': 'Collect information from the user and pause execution at this node.',
     'race': 'Execute parallel branches and return the result of the fastest or best-performing branch based on the racing strategy.',
   },
   operator: {
