@@ -49,7 +49,7 @@ const Node: FC<NodeProps<RaceNodeType>> = (props) => {
           <div className="text-xs text-gray-500 mb-2">
             {t(`${i18nPrefix}.strategy.title`)}: {strategyLabel}
           </div>
-          
+
           {raceInfo.length > 0 && (
             <div className="text-xs text-gray-400 space-y-1">
               {raceInfo.map((info, index) => (
@@ -60,10 +60,10 @@ const Node: FC<NodeProps<RaceNodeType>> = (props) => {
               ))}
             </div>
           )}
-          
+
           {(!variables || variables.length === 0) && (
             <div className="text-xs text-red-400">
-              {t(`${i18nPrefix}.noVariables`)}
+              {t(`${i18nPrefix}.variables.noVariables`)}
             </div>
           )}
         </div>
@@ -72,4 +72,4 @@ const Node: FC<NodeProps<RaceNodeType>> = (props) => {
   )
 }
 
-export default memo(Node) 
+export default memo(Node)
