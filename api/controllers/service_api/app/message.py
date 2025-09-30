@@ -128,7 +128,26 @@ class MessageSuggestedApi(Resource):
         return {"result": "success", "data": questions}
 
 
+class MessageGetApi(Resource):
+    @validate_app_token(fetch_user_arg=FetchUserArg(fetch_from=WhereisUserArg.QUERY, required=True))
+    @marshal_with(MessageListApi.message_fields)
+    def get(self, app_model: App, end_user: EndUser, message_id):
+        message_id = str(message_id)
+        app_mode = AppMode.value_of(app_model.mode)
+        if app_mode not in {AppMode.CHAT, AppMode.AGENT_CHAT, AppMode.ADVANCED_CHAT}:
+            raise NotChatAppError()
+
+        try:
+            return MessageService.get_message(app_model=app_model, user=end_user, message_id=message_id)
+        except services.errors.message.MessageNotExistsError:
+            raise NotFound("Message Not Exists.")
+        except Exception:
+            logging.exception("internal server error.")
+            raise InternalServerError()
+
+
 api.add_resource(MessageListApi, "/messages")
+api.add_resource(MessageGetApi, "/messages/<uuid:message_id>")
 api.add_resource(MessageFeedbackApi, "/messages/<uuid:message_id>/feedbacks")
 api.add_resource(MessageSuggestedApi, "/messages/<uuid:message_id>/suggested")
 api.add_resource(AppGetFeedbacksApi, "/app/feedbacks")
