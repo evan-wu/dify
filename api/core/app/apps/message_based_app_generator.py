@@ -109,6 +109,7 @@ class MessageBasedAppGenerator(BaseAppGenerator):
             AdvancedChatAppGenerateEntity,
         ],
         conversation: Optional[Conversation] = None,
+        conversation_id: Optional[str] = None,
     ) -> tuple[Conversation, Message]:
         """
         Initialize generate records
@@ -177,6 +178,8 @@ class MessageBasedAppGenerator(BaseAppGenerator):
                 from_end_user_id=end_user_id,
                 from_account_id=account_id,
             )
+            if conversation_id:
+                conversation.id = conversation_id
 
             db.session.add(conversation)
             db.session.commit()

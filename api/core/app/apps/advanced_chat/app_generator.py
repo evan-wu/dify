@@ -34,6 +34,7 @@ from factories import file_factory
 from models import Account, App, Conversation, EndUser, Message, Workflow, WorkflowNodeExecutionTriggeredFrom
 from models.enums import WorkflowRunTriggeredFrom
 from services.conversation_service import ConversationService
+from services.errors.conversation import ConversationNotExistsError
 from services.errors.message import MessageNotExistsError
 
 logger = logging.getLogger(__name__)
@@ -110,9 +111,13 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         conversation = None
         conversation_id = args.get("conversation_id")
         if conversation_id:
-            conversation = ConversationService.get_conversation(
-                app_model=app_model, conversation_id=conversation_id, user=user
-            )
+            try:
+                conversation = ConversationService.get_conversation(
+                    app_model=app_model, conversation_id=conversation_id, user=user
+                )
+            except ConversationNotExistsError as e:
+                # will create conversation with the conversation_id
+                pass
 
         # parse files
         files = args["files"] if args.get("files") else []
@@ -193,6 +198,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             workflow_execution_repository=workflow_execution_repository,
             workflow_node_execution_repository=workflow_node_execution_repository,
             conversation=conversation,
+            conversation_id=conversation_id,
             stream=streaming,
         )
 
@@ -359,6 +365,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         workflow_node_execution_repository: WorkflowNodeExecutionRepository,
         conversation: Optional[Conversation] = None,
         stream: bool = True,
+        conversation_id: Optional[str] = None
     ) -> Mapping[str, Any] | Generator[str | Mapping[str, Any], Any, None]:
         """
         Generate App response.
@@ -376,7 +383,7 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             is_first_conversation = True
 
         # init generate records
-        (conversation, message) = self._init_generate_records(application_generate_entity, conversation)
+        (conversation, message) = self._init_generate_records(application_generate_entity, conversation, conversation_id)
 
         if is_first_conversation:
             # update conversation features
