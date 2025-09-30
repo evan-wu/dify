@@ -24,6 +24,16 @@ if TYPE_CHECKING:
     from models.account import Account
 
 
+import decimal
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            return str(o)
+        return super().default(o)
+
+
 def run(script):
     return subprocess.getstatusoutput("source /root/.bashrc && " + script)
 
