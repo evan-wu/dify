@@ -110,7 +110,7 @@ class CodeNode(BaseNode[CodeNodeData]):
                 f" it must be between {dify_config.CODE_MIN_NUMBER} and {dify_config.CODE_MAX_NUMBER}."
             )
 
-        if isinstance(value, float):
+        if isinstance(value, float) and "." in str(value):
             # raise error if precision is too high
             if len(str(value).split(".")[1]) > dify_config.CODE_MAX_PRECISION:
                 raise OutputValidationError(
@@ -311,7 +311,7 @@ class CodeNode(BaseNode[CodeNodeData]):
             elif output_config.type == "array[file]":
                 # check if array of object available
                 if not isinstance(result[output_name], list):
-                    if isinstance(result[output_name], type(None)):
+                    if result[output_name] is None:
                         transformed_result[output_name] = None
                     else:
                         raise OutputValidationError(
