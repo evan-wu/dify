@@ -1,9 +1,8 @@
 import json
 import logging
-from copy import deepcopy
-from datetime import UTC, datetime
 from collections.abc import Generator
-from typing import Any, Optional, Union, cast
+from datetime import UTC, datetime
+from typing import Any, Optional, cast
 
 from flask_login import current_user
 

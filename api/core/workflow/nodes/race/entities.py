@@ -1,7 +1,5 @@
-from typing import Literal, Optional, List
 from enum import Enum
-
-from pydantic import BaseModel
+from typing import Optional
 
 from core.workflow.nodes.base import BaseNodeData
 
@@ -37,7 +35,7 @@ class RaceNodeData(BaseNodeData):
     max_winners: int = 1  # How many results to collect before declaring winner(s)
 
     # Variables to race for
-    variables: List[List[str]]
+    variables: list[list[str]]
 
     # Optional custom scoring/validation
     validation_expression: Optional[str] = None  # Custom expression to validate results

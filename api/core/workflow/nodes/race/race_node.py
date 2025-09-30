@@ -1,15 +1,13 @@
-import time
 import logging
-from typing import Generator, Any, Dict, List, Optional
-from datetime import datetime, timezone
+from collections.abc import Generator
+from typing import Any, Optional
 
 from core.workflow.entities.node_entities import NodeRunResult
-from core.workflow.entities.variable_pool import VariableValue
+from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.enums import NodeType
 from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
 from core.workflow.nodes.race.entities import RaceNodeData, RaceStrategy, WinCondition
-from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,7 @@ class RaceNode(BaseNode[RaceNodeData]):
 
         yield RunCompletedEvent(run_result=final_result)
 
-    def _is_winning_result(self, result: Dict[str, Any]) -> bool:
+    def _is_winning_result(self, result: dict[str, Any]) -> bool:
         """
         Determine if a result meets the winning condition.
         """
@@ -68,7 +66,7 @@ class RaceNode(BaseNode[RaceNodeData]):
 
         return True
 
-    def _custom_validate_result(self, result: Dict[str, Any]) -> bool:
+    def _custom_validate_result(self, result: dict[str, Any]) -> bool:
         """
         Apply custom validation logic to determine if result is valid.
         """
@@ -87,7 +85,7 @@ class RaceNode(BaseNode[RaceNodeData]):
             logger.warning(f"Custom validation failed: {e}")
             return False
 
-    def _process_race_results(self, winners: List[Dict[str, Any]]) -> NodeRunResult:
+    def _process_race_results(self, winners: list[dict[str, Any]]) -> NodeRunResult:
         """
         Process the race results and return the final node result.
         """
@@ -96,7 +94,7 @@ class RaceNode(BaseNode[RaceNodeData]):
             if self.node_data.fail_on_timeout:
                 return NodeRunResult(
                     status=WorkflowNodeExecutionStatus.FAILED,
-                    error=f"Race timeout with no winners",
+                    error="Race timeout with no winners",
                     outputs={},
                     inputs={}
                 )
@@ -138,7 +136,7 @@ class RaceNode(BaseNode[RaceNodeData]):
             inputs=inputs
         )
 
-    def _select_best_quality_result(self, winners: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _select_best_quality_result(self, winners: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Select the best quality result from winners.
         """
@@ -160,7 +158,7 @@ class RaceNode(BaseNode[RaceNodeData]):
 
         return best_winner
 
-    def _score_result(self, result: Dict[str, Any]) -> float:
+    def _score_result(self, result: dict[str, Any]) -> float:
         """
         Score a result based on the scoring expression.
         """
