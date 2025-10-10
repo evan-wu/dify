@@ -82,7 +82,7 @@ class RaceNode(BaseNode[RaceNodeData]):
                 return bool(value.get('success', True))
             return bool(value)
         except Exception as e:
-            logger.warning(f"Custom validation failed: {e}")
+            logger.warning("Custom validation failed: %s", e)
             return False
 
     def _process_race_results(self, winners: list[dict[str, Any]]) -> NodeRunResult:
@@ -154,7 +154,7 @@ class RaceNode(BaseNode[RaceNodeData]):
                     best_score = score
                     best_winner = winner
             except Exception as e:
-                logger.warning(f"Scoring failed for result: {e}")
+                logger.warning("Scoring failed for result: %s", e)
 
         return best_winner
 

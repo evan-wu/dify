@@ -6,12 +6,14 @@ import {
   Answer,
   Assigner,
   Code,
+  Datasource,
   DocsExtractor,
   End,
   Home,
   Http,
   IfElse,
   Iteration,
+  KnowledgeBase,
   KnowledgeRetrieval,
   ListFilter,
   Llm,
@@ -23,6 +25,7 @@ import {
   VariableX,
 } from '@/app/components/base/icons/src/vender/workflow'
 import AppIcon from '@/app/components/base/app-icon'
+import cn from '@/utils/classnames'
 
 type BlockIconProps = {
   type: BlockEnum
@@ -62,6 +65,9 @@ const getIcon = (type: BlockEnum, className: string) => {
     [BlockEnum.Agent]: <Agent className={className} />,
     [BlockEnum.Collect]: <Iteration className={className} />,
     [BlockEnum.Race]: <IfElse className={className} />,
+    [BlockEnum.KnowledgeBase]: <KnowledgeBase className={className} />,
+    [BlockEnum.DataSource]: <Datasource className={className} />,
+    [BlockEnum.DataSourceEmpty]: <></>,
   }[type]
 }
 const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
@@ -80,6 +86,7 @@ const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
   [BlockEnum.TemplateTransform]: 'bg-util-colors-blue-blue-500',
   [BlockEnum.VariableAssigner]: 'bg-util-colors-blue-blue-500',
   [BlockEnum.VariableAggregator]: 'bg-util-colors-blue-blue-500',
+  [BlockEnum.Tool]: 'bg-util-colors-blue-blue-500',
   [BlockEnum.Assigner]: 'bg-util-colors-blue-blue-500',
   [BlockEnum.ParameterExtractor]: 'bg-util-colors-blue-blue-500',
   [BlockEnum.DocExtractor]: 'bg-util-colors-green-green-500',
@@ -87,6 +94,8 @@ const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
   [BlockEnum.Agent]: 'bg-util-colors-indigo-indigo-500',
   [BlockEnum.Collect]: 'bg-util-colors-cyan-cyan-500',
   [BlockEnum.Race]: 'bg-util-colors-cyan-cyan-500',
+  [BlockEnum.KnowledgeBase]: 'bg-util-colors-warning-warning-500',
+  [BlockEnum.DataSource]: 'bg-components-icon-bg-midnight-solid',
 }
 const BlockIcon: FC<BlockIconProps> = ({
   type,
@@ -94,22 +103,26 @@ const BlockIcon: FC<BlockIconProps> = ({
   className,
   toolIcon,
 }) => {
+  const isToolOrDataSource = type === BlockEnum.Tool || type === BlockEnum.DataSource
+  const showDefaultIcon = !isToolOrDataSource || !toolIcon
+
   return (
-    <div className={`
-      flex items-center justify-center border-[0.5px] border-white/2 text-white
-      ${ICON_CONTAINER_CLASSNAME_SIZE_MAP[size]}
-      ${ICON_CONTAINER_BG_COLOR_MAP[type]}
-      ${toolIcon && '!shadow-none'}
-      ${className}
-    `}
+    <div className={
+      cn(
+        'flex items-center justify-center border-[0.5px] border-white/2 text-white',
+        ICON_CONTAINER_CLASSNAME_SIZE_MAP[size],
+        showDefaultIcon && ICON_CONTAINER_BG_COLOR_MAP[type],
+        toolIcon && '!shadow-none',
+        className,
+      )}
     >
       {
-        type !== BlockEnum.Tool && (
+        showDefaultIcon && (
           getIcon(type, size === 'xs' ? 'w-3 h-3' : 'w-3.5 h-3.5')
         )
       }
       {
-        type === BlockEnum.Tool && toolIcon && (
+        isToolOrDataSource && toolIcon && (
           <>
             {
               typeof toolIcon === 'string'

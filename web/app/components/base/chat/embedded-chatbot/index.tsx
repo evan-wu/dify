@@ -1,8 +1,7 @@
+'use client'
 import {
   useEffect,
-  useState,
 } from 'react'
-import { useAsyncEffect } from 'ahooks'
 import { useTranslation } from 'react-i18next'
 import {
   EmbeddedChatbotContext,
@@ -12,8 +11,6 @@ import { useEmbeddedChatbot } from './hooks'
 import { isDify } from './utils'
 import { useThemeContext } from './theme/theme-context'
 import { CssTransform } from './theme/utils'
-import { checkOrSetAccessToken } from '@/app/components/share/utils'
-import AppUnavailable from '@/app/components/base/app-unavailable'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
 import Loading from '@/app/components/base/loading'
 import LogoHeader from '@/app/components/base/logo/logo-embedded-chat-header'
@@ -26,11 +23,8 @@ import { useGlobalPublicStore } from '@/context/global-public-context'
 
 const Chatbot = () => {
   const {
-    userCanAccess,
     isMobile,
     allowResetChat,
-    appInfoError,
-    appInfoLoading,
     appData,
     appChatListDataLoading,
     chatShouldReloadKey,
@@ -51,38 +45,6 @@ const Chatbot = () => {
 
   useDocumentTitle(site?.title || 'Chat')
 
-  if (appInfoLoading) {
-    return (
-      <>
-        {!isMobile && <Loading type='app' />}
-        {isMobile && (
-          <div className={cn('relative')}>
-            <div className={cn('flex h-[calc(100vh_-_60px)] flex-col rounded-2xl border-[0.5px] border-components-panel-border shadow-xs')}>
-              <Loading type='app' />
-            </div>
-          </div>
-        )}
-      </>
-    )
-  }
-
-  if (!userCanAccess)
-    return <AppUnavailable code={403} unknownReason='no permission.' />
-
-  if (appInfoError) {
-    return (
-      <>
-        {!isMobile && <AppUnavailable />}
-        {isMobile && (
-          <div className={cn('relative')}>
-            <div className={cn('flex h-[calc(100vh_-_60px)] flex-col rounded-2xl border-[0.5px] border-components-panel-border shadow-xs')}>
-              <AppUnavailable />
-            </div>
-          </div>
-        )}
-      </>
-    )
-  }
   return (
     <div className='relative'>
       <div
@@ -138,10 +100,7 @@ const EmbeddedChatbotWrapper = () => {
   const themeBuilder = useThemeContext()
 
   const {
-    appInfoError,
-    appInfoLoading,
     appData,
-    accessMode,
     userCanAccess,
     appParams,
     appMeta,
@@ -172,13 +131,11 @@ const EmbeddedChatbotWrapper = () => {
     currentConversationInputs,
     setCurrentConversationInputs,
     allInputsHidden,
+    initUserVariables,
   } = useEmbeddedChatbot()
 
   return <EmbeddedChatbotContext.Provider value={{
     userCanAccess,
-    accessMode,
-    appInfoError,
-    appInfoLoading,
     appData,
     appParams,
     appMeta,
@@ -211,40 +168,13 @@ const EmbeddedChatbotWrapper = () => {
     currentConversationInputs,
     setCurrentConversationInputs,
     allInputsHidden,
+    initUserVariables,
   }}>
     <Chatbot />
   </EmbeddedChatbotContext.Provider>
 }
 
 const EmbeddedChatbot = () => {
-  const [initialized, setInitialized] = useState(false)
-  const [appUnavailable, setAppUnavailable] = useState<boolean>(false)
-  const [isUnknownReason, setIsUnknownReason] = useState<boolean>(false)
-
-  useAsyncEffect(async () => {
-    if (!initialized) {
-      try {
-        await checkOrSetAccessToken()
-      }
-      catch (e: any) {
-        if (e.status === 404) {
-          setAppUnavailable(true)
-        }
-        else {
-          setIsUnknownReason(true)
-          setAppUnavailable(true)
-        }
-      }
-      setInitialized(true)
-    }
-  }, [])
-
-  if (!initialized)
-    return null
-
-  if (appUnavailable)
-    return <AppUnavailable isUnknownReason={isUnknownReason} />
-
   return <EmbeddedChatbotWrapper />
 }
 
