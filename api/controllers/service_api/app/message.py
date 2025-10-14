@@ -231,7 +231,7 @@ class MessageGetApi(Resource):
     @service_api_ns.doc(description="Get message detail by id")
     @service_api_ns.doc(params={"message_id": "Message ID"})
     @validate_app_token(fetch_user_arg=FetchUserArg(fetch_from=WhereisUserArg.QUERY, required=True))
-    @service_api_ns.marshal_with(MessageListApi.message_fields)
+    @service_api_ns.marshal_with(build_message_model(service_api_ns))
     def get(self, app_model: App, end_user: EndUser, message_id):
         message_id = str(message_id)
         app_mode = AppMode.value_of(app_model.mode)

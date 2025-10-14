@@ -42,6 +42,7 @@ class SystemVariable(BaseModel):
     # Chatflow related fields.
     query: str | None = None
     conversation_id: str | None = None
+    message_history: Sequence[Mapping[str, Any]] | None = None
     dialogue_count: int | None = None
     document_id: str | None = None
     original_document_id: str | None = None
@@ -91,6 +92,8 @@ class SystemVariable(BaseModel):
             d[SystemVariableKey.QUERY] = self.query
         if self.conversation_id is not None:
             d[SystemVariableKey.CONVERSATION_ID] = self.conversation_id
+        if self.message_history is not None:
+            d[SystemVariableKey.MESSAGE_HISTORY] = self.message_history
         if self.dialogue_count is not None:
             d[SystemVariableKey.DIALOGUE_COUNT] = self.dialogue_count
         if self.document_id is not None:

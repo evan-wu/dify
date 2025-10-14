@@ -10,7 +10,7 @@ class CollectNodeData(BaseNodeData):
     """
     start_node_id: str
     max_runs: int
-    logical_operator: Optional[Literal["and", "or"]] = "and"
+    logical_operator: Literal["and", "or"] = "and"
     check_conditions: Optional[list[Condition]] = None
 
     output_selector: list[str]  # output selector

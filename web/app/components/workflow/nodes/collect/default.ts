@@ -1,10 +1,19 @@
+import { BlockEnum } from '../../types'
 import type { NodeDefault } from '../../types'
 import type { CollectNodeType } from './types'
-import { ALL_CHAT_AVAILABLE_BLOCKS } from '@/app/components/workflow/blocks'
-import {LogicalOperator} from "@/app/components/workflow/nodes/if-else/types";
+import { genNodeMetaData } from '@/app/components/workflow/utils'
+import { LogicalOperator } from '@/app/components/workflow/nodes/if-else/types'
+import { BlockClassificationEnum } from '@/app/components/workflow/block-selector/types'
 const i18nPrefix = 'workflow'
 
+const metaData = genNodeMetaData({
+  classification: BlockClassificationEnum.Logic,
+  sort: 2,
+  type: BlockEnum.Collect,
+  isTypeFixed: true,
+})
 const nodeDefault: NodeDefault<CollectNodeType> = {
+  metaData,
   defaultValue: {
     start_node_id: '',
     max_runs: 1,
@@ -12,16 +21,6 @@ const nodeDefault: NodeDefault<CollectNodeType> = {
     logical_operator: LogicalOperator.and,
     output_selector: [],
     _children: [],
-  },
-  getAvailablePrevNodes(isChatMode: boolean) {
-    const nodes = isChatMode
-      ? ALL_CHAT_AVAILABLE_BLOCKS
-      : []
-    return nodes
-  },
-  getAvailableNextNodes(isChatMode: boolean) {
-    const nodes = isChatMode ? ALL_CHAT_AVAILABLE_BLOCKS : []
-    return nodes
   },
   checkValid(payload: CollectNodeType, t: any) {
     let errorMessages = ''

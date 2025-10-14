@@ -1,18 +1,28 @@
 import logging
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from typing import Any, Optional
 
-from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
-from core.workflow.nodes.base import BaseNode
-from core.workflow.nodes.enums import NodeType
-from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
+from core.workflow.enums import (
+    ErrorStrategy,
+    NodeType,
+)
+from core.workflow.graph_events import (
+    GraphNodeEventBase,
+)
+from core.workflow.node_events import (
+    NodeEventBase,
+    NodeRunResult,
+    StreamCompletedEvent,
+)
+from core.workflow.nodes.base.entities import BaseNodeData, RetryConfig
+from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.race.entities import RaceNodeData, RaceStrategy, WinCondition
 
 logger = logging.getLogger(__name__)
 
 
-class RaceNode(BaseNode[RaceNodeData]):
+class RaceNode(Node):
     """
     Race Node for competitive parallel execution.
 
@@ -20,18 +30,61 @@ class RaceNode(BaseNode[RaceNodeData]):
     on the configured race strategy (fastest, highest quality, etc.).
     """
 
-    _node_data_cls = RaceNodeData
-    _node_type = NodeType.RACE
+    node_type = NodeType.RACE
+    _node_data: RaceNodeData
 
-    def _run(self) -> Generator[NodeEvent, None, None]:
+    def init_node_data(self, data: Mapping[str, Any]):
+        self._node_data = RaceNodeData.model_validate(data)
+
+    def _get_error_strategy(self) -> ErrorStrategy | None:
+        return self._node_data.error_strategy
+
+    def _get_retry_config(self) -> RetryConfig:
+        return self._node_data.retry_config
+
+    def _get_title(self) -> str:
+        return self._node_data.title
+
+    def _get_description(self) -> str | None:
+        return self._node_data.desc
+
+    def _get_default_value_dict(self) -> dict[str, Any]:
+        return self._node_data.default_value_dict
+
+    def get_base_node_data(self) -> BaseNodeData:
+        return self._node_data
+
+    @classmethod
+    def get_default_config(cls, filters: Mapping[str, object] | None = None) -> Mapping[str, object]:
+        """
+        Get default configuration for the race node.
+        """
+        return {
+            "type": "race",
+            "config": {
+                "race_strategy": "first_complete",
+                "win_condition": "any_result",
+                "timeout_seconds": 30.0,
+                "max_winners": 1,
+                "variables": [],
+                "fail_on_timeout": False,
+                "fail_on_all_errors": True
+            }
+        }
+
+    @classmethod
+    def version(cls) -> str:
+        return "1"
+
+    def _run(self) -> Generator[GraphNodeEventBase | NodeEventBase, None, None]:  # type: ignore
         """
         Run the race node with competitive parallel execution.
         """
-        logger.info(f"Starting race node {self.node_id} with strategy: {self.node_data.race_strategy}")
+        logger.info(f"Starting race node {self._node_id} with strategy: {self._node_data.race_strategy}")
 
         # Collect all available variables from the completed branches
         results = []
-        for selector in self.node_data.variables:
+        for selector in self._node_data.variables:
             variable = self.graph_runtime_state.variable_pool.get(selector)
             if variable is not None:
                 result = {
@@ -45,23 +98,23 @@ class RaceNode(BaseNode[RaceNodeData]):
         # Process results based on strategy
         final_result = self._process_race_results(results)
 
-        yield RunCompletedEvent(run_result=final_result)
+        yield StreamCompletedEvent(node_run_result=final_result)
 
     def _is_winning_result(self, result: dict[str, Any]) -> bool:
         """
         Determine if a result meets the winning condition.
         """
-        if self.node_data.win_condition == WinCondition.ANY_RESULT:
+        if self._node_data.win_condition == WinCondition.ANY_RESULT:
             return result['value'] is not None
 
-        elif self.node_data.win_condition == WinCondition.NO_ERROR:
+        elif self._node_data.win_condition == WinCondition.NO_ERROR:
             # Check if the result indicates an error (this is simplified)
             value = result['value']
             if isinstance(value, dict) and value.get('error'):
                 return False
             return value is not None
 
-        elif self.node_data.win_condition == WinCondition.CUSTOM_VALIDATION:
+        elif self._node_data.win_condition == WinCondition.CUSTOM_VALIDATION:
             return self._custom_validate_result(result)
 
         return True
@@ -70,7 +123,7 @@ class RaceNode(BaseNode[RaceNodeData]):
         """
         Apply custom validation logic to determine if result is valid.
         """
-        if not self.node_data.validation_expression:
+        if not self._node_data.validation_expression:
             return True
 
         try:
@@ -91,7 +144,7 @@ class RaceNode(BaseNode[RaceNodeData]):
         """
         if not winners:
             # No winners found
-            if self.node_data.fail_on_timeout:
+            if self._node_data.fail_on_timeout:
                 return NodeRunResult(
                     status=WorkflowNodeExecutionStatus.FAILED,
                     error="Race timeout with no winners",
@@ -111,9 +164,9 @@ class RaceNode(BaseNode[RaceNodeData]):
                 )
 
         # Process winners based on strategy
-        if self.node_data.race_strategy == RaceStrategy.FIRST_COMPLETE:
+        if self._node_data.race_strategy == RaceStrategy.FIRST_COMPLETE:
             winner = winners[0]
-        elif self.node_data.race_strategy == RaceStrategy.QUALITY_RACE:
+        elif self._node_data.race_strategy == RaceStrategy.QUALITY_RACE:
             winner = self._select_best_quality_result(winners)
         else:
             winner = winners[0]  # Default to first
@@ -122,7 +175,7 @@ class RaceNode(BaseNode[RaceNodeData]):
         outputs = {
             'race_winner': winner['value'],
             'race_status': 'completed',
-            'total_competitors': len(self.node_data.variables),
+            'total_competitors': len(self._node_data.variables),
             'total_winners': len(winners)
         }
 
@@ -140,7 +193,7 @@ class RaceNode(BaseNode[RaceNodeData]):
         """
         Select the best quality result from winners.
         """
-        if not self.node_data.scoring_expression:
+        if not self._node_data.scoring_expression:
             # Default to fastest (first winner)
             return winners[0]
 
@@ -181,7 +234,7 @@ class RaceNode(BaseNode[RaceNodeData]):
         """
         Get any available result as a fallback when no winners are found.
         """
-        for selector in self.node_data.variables:
+        for selector in self._node_data.variables:
             variable = self.graph_runtime_state.variable_pool.get(selector)
             if variable is not None:
                 return NodeRunResult(
@@ -194,21 +247,3 @@ class RaceNode(BaseNode[RaceNodeData]):
                 )
 
         return None
-
-    @classmethod
-    def get_default_config(cls, filters: Optional[dict] = None) -> dict:
-        """
-        Get default configuration for the race node.
-        """
-        return {
-            "data": {
-                "type": "race",
-                "race_strategy": "first_complete",
-                "win_condition": "any_result",
-                "timeout_seconds": 30.0,
-                "max_winners": 1,
-                "variables": [],
-                "fail_on_timeout": False,
-                "fail_on_all_errors": True
-            }
-        }

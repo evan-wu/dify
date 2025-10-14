@@ -1175,7 +1175,7 @@ export const toNodeAvailableVars = ({
         },
       ],
     }
-    beforeNodesOutputVars.unshift(<NodeOutPutVar>runsCountVar)
+    beforeNodesOutputVars.unshift(runsCountVar as NodeOutPutVar)
   }
   const isInIteration = parentNode?.data.type === BlockEnum.Iteration
   if (isInIteration) {

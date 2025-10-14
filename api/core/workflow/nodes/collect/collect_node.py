@@ -2,132 +2,143 @@ import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any
 
-from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
-from core.workflow.entities.node_entities import NodeRunResult
-from core.workflow.entities.variable_pool import VariablePool
-from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionMetadataKey, WorkflowNodeExecutionStatus
-from core.workflow.graph_engine.entities.event import (
+from core.workflow.entities import VariablePool
+from core.workflow.enums import (
+    ErrorStrategy,
+    NodeExecutionType,
+    NodeType,
+    WorkflowNodeExecutionMetadataKey,
+    WorkflowNodeExecutionStatus,
+)
+from core.workflow.graph_events import (
     BaseGraphEvent,
-    BaseNodeEvent,
-    BaseParallelBranchEvent,
+    GraphNodeEventBase,
     GraphRunFailedEvent,
     GraphRunSucceededEvent,
-    InNodeEvent,
-    IterationRunFailedEvent,
-    IterationRunNextEvent,
-    IterationRunStartedEvent,
-    IterationRunSucceededEvent,
-    NodeRunStreamChunkEvent,
-    NodeRunSucceededEvent,
 )
-from core.workflow.graph_engine.entities.graph import Graph
-from core.workflow.nodes import NodeType
-from core.workflow.nodes.base import BaseNode
+from core.workflow.node_events import (
+    IterationFailedEvent,
+    IterationNextEvent,
+    IterationStartedEvent,
+    IterationSucceededEvent,
+    NodeEventBase,
+    NodeRunResult,
+    StreamChunkEvent,
+    StreamCompletedEvent,
+)
+from core.workflow.nodes.base.entities import BaseNodeData, RetryConfig
+from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.collect.entities import CollectNodeData
-from core.workflow.nodes.event import NodeEvent, RunCompletedEvent
+from core.workflow.nodes.iteration.exc import (
+    IterationGraphNotFoundError,
+)
 from core.workflow.utils.condition.processor import ConditionProcessor
 from extensions.ext_database import db
+from libs.datetime_utils import naive_utc_now
 from models.workflow import Workflow, WorkflowRunningCollect
+
+if TYPE_CHECKING:
+    pass
 
 logger = logging.getLogger(__name__)
 
 
-class CollectNode(BaseNode):
+class CollectNode(Node):
     """
     Collect Node.
     """
-    _node_data_cls = CollectNodeData
-    _node_type = NodeType.COLLECT
+
+    node_type = NodeType.COLLECT
+    execution_type = NodeExecutionType.CONTAINER
+    _node_data: CollectNodeData
     VAR_NAME_CURRENT_RUNS = '_current_runs_'
     VAR_NAME_IS_RESUMED_COLLECT = '_is_resumed_collect_'
 
-    def _run(self) -> Generator[NodeEvent | InNodeEvent, None, None]:
+    def init_node_data(self, data: Mapping[str, Any]):
+        self._node_data = CollectNodeData.model_validate(data)
+
+    def _get_error_strategy(self) -> ErrorStrategy | None:
+        return self._node_data.error_strategy
+
+    def _get_retry_config(self) -> RetryConfig:
+        return self._node_data.retry_config
+
+    def _get_title(self) -> str:
+        return self._node_data.title
+
+    def _get_description(self) -> str | None:
+        return self._node_data.desc
+
+    def _get_default_value_dict(self) -> dict[str, Any]:
+        return self._node_data.default_value_dict
+
+    def get_base_node_data(self) -> BaseNodeData:
+        return self._node_data
+
+    @classmethod
+    def get_default_config(cls, filters: Mapping[str, object] | None = None) -> Mapping[str, object]:
+        return {
+            "type": "collect"
+        }
+
+    @classmethod
+    def version(cls) -> str:
+        return "1"
+
+    def _run(self) -> Generator[GraphNodeEventBase | NodeEventBase, None, None]:  # type: ignore
         """
         Run the node.
         """
-        start_at = datetime.now(UTC).replace(tzinfo=None)
+        started_at = naive_utc_now()
 
-        self.node_data = cast(CollectNodeData, self.node_data)
         variable_pool = self.graph_runtime_state.variable_pool
-        max_runs = self.node_data.max_runs
-        is_resumed_collect = variable_pool.get((self.node_id, CollectNode.VAR_NAME_IS_RESUMED_COLLECT))
+        max_runs = self._node_data.max_runs
+        is_resumed_collect = variable_pool.get((self._node_id, CollectNode.VAR_NAME_IS_RESUMED_COLLECT))
         # first run: runs count from saved variables
         if not is_resumed_collect:
             current_runs = 1
-            variable_pool.add((self.node_id, CollectNode.VAR_NAME_CURRENT_RUNS), current_runs)
+            variable_pool.add((self._node_id, CollectNode.VAR_NAME_CURRENT_RUNS), current_runs)
         else:
-            current_runs = variable_pool.get((self.node_id, CollectNode.VAR_NAME_CURRENT_RUNS)).value
+            current_runs = variable_pool.get((self._node_id, CollectNode.VAR_NAME_CURRENT_RUNS)).value
 
         # reuse the iteration event for now
-        yield IterationRunStartedEvent(
-            iteration_id=self.id,
-            iteration_node_id=self.node_id,
-            iteration_node_type=self.node_type,
-            iteration_node_data=self.node_data,
-            start_at=start_at,
+        yield IterationStartedEvent(
+            start_at=started_at,
             inputs={},
-            metadata={"iterator_length": 1},
-            predecessor_node_id=self.previous_node_id,
+            metadata={"iterator_length": 1}
         )
 
-        yield IterationRunNextEvent(
-            iteration_id=self.id,
-            iteration_node_id=self.node_id,
-            iteration_node_type=self.node_type,
-            iteration_node_data=self.node_data,
-            index=0,
-            pre_iteration_output=None,
+        yield IterationNextEvent(
+            index=0
         )
 
         # start running inner graph
-        from core.workflow.graph_engine.graph_engine import GraphEngine
+        graph_engine, inner_graph_node_ids = self._create_graph_engine()
         condition_processor = ConditionProcessor()
-
-        inner_start_node_id = self.node_data.start_node_id
-        inner_graph = Graph.init(graph_config=self.graph_config, root_node_id=inner_start_node_id)
-        if not inner_graph:
-            raise ValueError("collect node inner graph not found")
-
-        graph_engine = GraphEngine(
-            tenant_id=self.tenant_id,
-            app_id=self.app_id,
-            workflow_type=self.workflow_type,
-            workflow_id=self.workflow_id,
-            user_id=self.user_id,
-            user_from=self.user_from,
-            invoke_from=self.invoke_from,
-            call_depth=self.workflow_call_depth,
-            graph=inner_graph,
-            graph_config=self.graph_config,
-            variable_pool=variable_pool,
-            max_execution_steps=dify_config.WORKFLOW_MAX_EXECUTION_STEPS,
-            max_execution_time=dify_config.WORKFLOW_MAX_EXECUTION_TIME,
-            thread_pool_id=self.thread_pool_id,
-        )
 
         rst = graph_engine.run()
         for event in rst:
-            if isinstance(event, (BaseNodeEvent | BaseParallelBranchEvent)) and not event.in_iteration_id:
-                event.in_iteration_id = self.node_id
+            if isinstance(event, GraphNodeEventBase) and not event.in_iteration_id:
+                event.in_iteration_id = self._node_id
 
             if (
-                    isinstance(event, BaseNodeEvent)
-                    and event.node_type == NodeType.ITERATION_START
-                    and not isinstance(event, NodeRunStreamChunkEvent)
+                isinstance(event, GraphNodeEventBase)
+                and event.node_type == NodeType.ITERATION_START
+                and not isinstance(event, StreamChunkEvent)
             ):
                 continue
 
-            if isinstance(event, NodeRunSucceededEvent):
-                if event.route_node_state.node_run_result:
-                    metadata = event.route_node_state.node_run_result.metadata
+            if isinstance(event, StreamCompletedEvent):
+                if event.node_run_result:
+                    metadata = event.metadata
                     if not metadata:
                         metadata = {}
 
                     if WorkflowNodeExecutionMetadataKey.ITERATION_ID not in metadata:
-                        metadata[WorkflowNodeExecutionMetadataKey.ITERATION_ID] = self.node_id
+                        metadata[WorkflowNodeExecutionMetadataKey.ITERATION_ID] = self._node_id
                         metadata[WorkflowNodeExecutionMetadataKey.ITERATION_INDEX] = 0
                         event.route_node_state.node_run_result.metadata = metadata
 
@@ -135,28 +146,23 @@ class CollectNode(BaseNode):
             elif isinstance(event, BaseGraphEvent):
                 if isinstance(event, GraphRunFailedEvent):
                     # iteration run failed
-                    yield IterationRunFailedEvent(
-                        iteration_id=self.id,
-                        iteration_node_id=self.node_id,
-                        iteration_node_type=self.node_type,
-                        iteration_node_data=self.node_data,
-                        start_at=start_at,
+                    yield IterationFailedEvent(
+                        start_at=started_at,
                         inputs={},
                         outputs={"output": jsonable_encoder({})},
                         steps=1,
-                        metadata={"total_tokens": graph_engine.graph_runtime_state.total_tokens},
+                        metadata={WorkflowNodeExecutionMetadataKey.TOTAL_TOKENS: graph_engine.graph_runtime_state.total_tokens},
                         error=event.error,
                     )
 
-                    yield RunCompletedEvent(
-                        run_result=NodeRunResult(
+                    yield StreamCompletedEvent(
+                        node_run_result=NodeRunResult(
                             status=WorkflowNodeExecutionStatus.FAILED,
                             error=event.error,
                         )
                     )
                     return
             else:
-                event = cast(InNodeEvent, event)
                 yield event
 
         # check completed after run
@@ -166,12 +172,12 @@ class CollectNode(BaseNode):
             collect_completed = True
             # set collect node level output
             collect_node_output = variable_pool.get(
-                self.node_data.output_selector
+                self._node_data.output_selector
             )
             if collect_node_output:
                 collect_node_output = collect_node_output.value
                 variable_pool.add(
-                    (self.node_id, 'output'),
+                    (self._node_id, 'output'),
                     collect_node_output
                 )
 
@@ -184,15 +190,11 @@ class CollectNode(BaseNode):
 
         # clear variables in current collect
         # remove all nodes outputs from variable pool
-        for node_id in inner_graph.node_ids:
+        for node_id in inner_graph_node_ids:
             variable_pool.remove((node_id,))  # the input is (node_id, [var_name])
 
-        yield IterationRunSucceededEvent(
-            iteration_id=self.id,
-            iteration_node_id=self.node_id,
-            iteration_node_type=self.node_type,
-            iteration_node_data=self.node_data,
-            start_at=start_at,
+        yield IterationSucceededEvent(
+            start_at=started_at,
             inputs={},
             outputs={"output": jsonable_encoder(collect_node_output)},
             steps=1,
@@ -200,15 +202,15 @@ class CollectNode(BaseNode):
         )
 
         if collect_completed:
-            yield RunCompletedEvent(
-                run_result=NodeRunResult(
+            yield StreamCompletedEvent(
+                node_run_result=NodeRunResult(
                     status=WorkflowNodeExecutionStatus.SUCCEEDED,
                     outputs={"output": jsonable_encoder(collect_node_output)}
                 )
             )
         else:
             current_runs += 1
-            variable_pool.add((self.node_id, CollectNode.VAR_NAME_CURRENT_RUNS), current_runs)
+            variable_pool.add((self._node_id, CollectNode.VAR_NAME_CURRENT_RUNS), current_runs)
 
             # save reusable variables
             workflow = db.session.query(Workflow).filter(
@@ -222,8 +224,8 @@ class CollectNode(BaseNode):
     def _post_run_check_condition(self, condition_processor: ConditionProcessor, variable_pool: VariablePool) -> bool:
         # post-check condition
         _, _, check_satisfied = condition_processor.process_conditions(variable_pool=variable_pool,
-                                                                       conditions=self.node_data.check_conditions,
-                                                                       operator=self.node_data.logical_operator)
+                                                                       conditions=self._node_data.check_conditions,
+                                                                       operator=self._node_data.logical_operator)
         return check_satisfied
 
     def check_collect_completed(self, condition_processor, variable_pool: VariablePool, current_runs, max_runs):
@@ -232,9 +234,9 @@ class CollectNode(BaseNode):
     def _save_workflow_running_collect(self, workflow: Workflow, variable_pool: VariablePool):
         # update or create
         conversation_id = variable_pool.get(('sys', 'conversation_id')).value
-        collect_node_id = self.node_id
+        collect_node_id = self._node_id
         current_runs = variable_pool.get(
-                (self.node_id, CollectNode.VAR_NAME_CURRENT_RUNS)
+                (self._node_id, CollectNode.VAR_NAME_CURRENT_RUNS)
         ).value
         variable_dict = {k: v for k, v in variable_pool.variable_dictionary.items()
                          if k != 'sys'}
@@ -285,11 +287,78 @@ class CollectNode(BaseNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-            cls, graph_config: Mapping[str, Any], node_id: str, node_data: CollectNodeData
+        cls,
+        *,
+        graph_config: Mapping[str, Any],
+        node_id: str,
+        node_data: Mapping[str, Any],
     ) -> Mapping[str, Sequence[str]]:
-        """
-        Extract variable selector to variable mapping
-        :param node_data: node data
-        :return:
-        """
         return {}
+
+    def _append_iteration_info_to_event(
+        self,
+        event: GraphNodeEventBase,
+        iter_run_index: int,
+    ):
+        event.in_iteration_id = self._node_id
+        iter_metadata = {
+            WorkflowNodeExecutionMetadataKey.ITERATION_ID: self._node_id,
+            WorkflowNodeExecutionMetadataKey.ITERATION_INDEX: iter_run_index,
+        }
+
+        current_metadata = event.node_run_result.metadata
+        if WorkflowNodeExecutionMetadataKey.ITERATION_ID not in current_metadata:
+            event.node_run_result.metadata = {**current_metadata, **iter_metadata}
+
+    def _create_graph_engine(self):
+        # Import dependencies
+        from core.workflow.entities import GraphInitParams, GraphRuntimeState
+        from core.workflow.graph import Graph
+        from core.workflow.graph_engine import GraphEngine
+        from core.workflow.graph_engine.command_channels import InMemoryChannel
+        from core.workflow.nodes.node_factory import DifyNodeFactory
+
+        # Create GraphInitParams from node attributes
+        graph_init_params = GraphInitParams(
+            tenant_id=self.tenant_id,
+            app_id=self.app_id,
+            workflow_id=self.workflow_id,
+            graph_config=self.graph_config,
+            user_id=self.user_id,
+            user_from=self.user_from.value,
+            invoke_from=self.invoke_from.value,
+            call_depth=self.workflow_call_depth,
+        )
+        # Create a deep copy of the variable pool for each iteration
+        variable_pool_copy = self.graph_runtime_state.variable_pool.model_copy(deep=True)
+
+        # Create a new GraphRuntimeState for this iteration
+        graph_runtime_state_copy = GraphRuntimeState(
+            variable_pool=variable_pool_copy,
+            start_at=self.graph_runtime_state.start_at,
+            total_tokens=0,
+            node_run_steps=0,
+        )
+
+        # Create a new node factory with the new GraphRuntimeState
+        node_factory = DifyNodeFactory(
+            graph_init_params=graph_init_params, graph_runtime_state=graph_runtime_state_copy
+        )
+
+        # Initialize the iteration graph with the new node factory
+        inner_graph = Graph.init(
+            graph_config=self.graph_config, node_factory=node_factory, root_node_id=self._node_data.start_node_id
+        )
+
+        if not inner_graph:
+            raise IterationGraphNotFoundError("collect node inner graph not found")
+
+        # Create a new GraphEngine for this iteration
+        graph_engine = GraphEngine(
+            workflow_id=self.workflow_id,
+            graph=inner_graph,
+            graph_runtime_state=graph_runtime_state_copy,
+            command_channel=InMemoryChannel(),  # Use InMemoryChannel for sub-graphs
+        )
+
+        return graph_engine, inner_graph.node_ids

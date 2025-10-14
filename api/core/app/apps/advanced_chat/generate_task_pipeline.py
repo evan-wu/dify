@@ -598,7 +598,7 @@ class AdvancedChatAppGenerateTaskPipeline:
 
             # Save message if there is partial result
             if self._task_state and self._task_state.answer:
-                self._save_message(graph_runtime_state=graph_runtime_state)
+                self._save_message(graph_runtime_state=graph_runtime_state, session=session)
 
             session.commit()
 
