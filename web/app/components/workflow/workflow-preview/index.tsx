@@ -21,6 +21,7 @@ import 'reactflow/dist/style.css'
 import '../style.css'
 import { CUSTOM_ITERATION_START_NODE } from '@/app/components/workflow/nodes/iteration-start/constants'
 import { CUSTOM_LOOP_START_NODE } from '@/app/components/workflow/nodes/loop-start/constants'
+import { CUSTOM_COLLECT_START_NODE } from '@/app/components/workflow/nodes/collect-start/constants'
 import { CUSTOM_SIMPLE_NODE } from '@/app/components/workflow/simple-node/constants'
 import CustomConnectionLine from '@/app/components/workflow/custom-connection-line'
 import {
@@ -43,6 +44,7 @@ import CustomEdge from './components/custom-edge'
 import ZoomInOut from './components/zoom-in-out'
 import IterationStartNode from './components/nodes/iteration-start'
 import LoopStartNode from './components/nodes/loop-start'
+import CollectStartNode from './components/nodes/collect-start'
 import CustomNoteNode from './components/note-node'
 
 const nodeTypes = {
@@ -51,6 +53,7 @@ const nodeTypes = {
   [CUSTOM_SIMPLE_NODE]: CustomNode,
   [CUSTOM_ITERATION_START_NODE]: IterationStartNode,
   [CUSTOM_LOOP_START_NODE]: LoopStartNode,
+  [CUSTOM_COLLECT_START_NODE]: CollectStartNode,
 }
 const edgeTypes = {
   [CUSTOM_EDGE]: CustomEdge,

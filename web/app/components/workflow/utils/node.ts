@@ -16,14 +16,17 @@ import {
 } from '../constants'
 import { CUSTOM_ITERATION_START_NODE } from '../nodes/iteration-start/constants'
 import { CUSTOM_LOOP_START_NODE } from '../nodes/loop-start/constants'
+import { CUSTOM_COLLECT_START_NODE } from '../nodes/collect-start/constants'
 import type { IterationNodeType } from '../nodes/iteration/types'
 import type { LoopNodeType } from '../nodes/loop/types'
+import type { CollectNodeType } from '../nodes/collect/types'
 import { CUSTOM_SIMPLE_NODE } from '@/app/components/workflow/simple-node/constants'
 
 export function generateNewNode({ data, position, id, zIndex, type, ...rest }: Omit<Node, 'id'> & { id?: string }): {
   newNode: Node
   newIterationStartNode?: Node
   newLoopStartNode?: Node
+  newCollectStartNode?: Node
 } {
   const newNode = {
     id: id || `${Date.now()}`,
@@ -32,7 +35,7 @@ export function generateNewNode({ data, position, id, zIndex, type, ...rest }: O
     position,
     targetPosition: Position.Left,
     sourcePosition: Position.Right,
-    zIndex: data.type === BlockEnum.Iteration ? ITERATION_NODE_Z_INDEX : (data.type === BlockEnum.Loop ? LOOP_NODE_Z_INDEX : zIndex),
+    zIndex: data.type === BlockEnum.Iteration ? ITERATION_NODE_Z_INDEX : (data.type === BlockEnum.Loop ? LOOP_NODE_Z_INDEX : (data.type === BlockEnum.Collect ? ITERATION_NODE_Z_INDEX : zIndex)),
     ...rest,
   } as Node
 
@@ -53,6 +56,16 @@ export function generateNewNode({ data, position, id, zIndex, type, ...rest }: O
     return {
       newNode,
       newLoopStartNode,
+    }
+  }
+
+  if (data.type === BlockEnum.Collect) {
+    const newCollectStartNode = getCollectStartNode(newNode.id);
+    (newNode.data as CollectNodeType).start_node_id = newCollectStartNode.id;
+    (newNode.data as CollectNodeType)._children = [{ nodeId: newCollectStartNode.id, nodeType: BlockEnum.CollectStart }]
+    return {
+      newNode,
+      newCollectStartNode,
     }
   }
 
@@ -98,6 +111,27 @@ export function getLoopStartNode(loopId: string): Node {
     },
     zIndex: LOOP_CHILDREN_Z_INDEX,
     parentId: loopId,
+    selectable: false,
+    draggable: false,
+  }).newNode
+}
+
+export function getCollectStartNode(collectId: string): Node {
+  return generateNewNode({
+    id: `${collectId}start`,
+    type: CUSTOM_COLLECT_START_NODE,
+    data: {
+      title: '',
+      desc: '',
+      type: BlockEnum.CollectStart,
+      isInIteration: true,
+    },
+    position: {
+      x: 24,
+      y: 68,
+    },
+    zIndex: ITERATION_CHILDREN_Z_INDEX,
+    parentId: collectId,
     selectable: false,
     draggable: false,
   }).newNode

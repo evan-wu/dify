@@ -48,6 +48,7 @@ export enum BlockEnum {
   LoopStart = 'loop-start',
   LoopEnd = 'loop-end',
   Collect = 'collect',
+  CollectStart = 'collect-start',
   Race = 'race',
   DataSource = 'datasource',
   DataSourceEmpty = 'datasource-empty',

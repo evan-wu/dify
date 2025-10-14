@@ -14,6 +14,7 @@ import {
 import {
   ITERATION_PADDING,
 } from '../../constants'
+import { CUSTOM_COLLECT_START_NODE } from '../collect-start/constants'
 import { useNodesMetaData } from '@/app/components/workflow/hooks'
 
 export const useNodeCollectInteractions = () => {
@@ -50,8 +51,8 @@ export const useNodeCollectInteractions = () => {
       }
     })
 
-    const widthShouldExtend = rightNode! && currentNode.width! < rightNode.position.x + rightNode.width!
-    const heightShouldExtend = bottomNode! && currentNode.height! < bottomNode.position.y + bottomNode.height!
+    const widthShouldExtend = rightNode! && (!currentNode.width || currentNode.width < rightNode.position.x + rightNode.width! + ITERATION_PADDING.right)
+    const heightShouldExtend = bottomNode! && (!currentNode.height || currentNode.height < bottomNode.position.y + bottomNode.height! + ITERATION_PADDING.bottom)
 
     if (widthShouldExtend || heightShouldExtend) {
       const newNodes = produce(nodes, (draft) => {
@@ -112,7 +113,7 @@ export const useNodeCollectInteractions = () => {
   const handleNodeCollectChildrenCopy = useCallback((nodeId: string, newNodeId: string, idMapping: Record<string, string>) => {
     const { getNodes } = store.getState()
     const nodes = getNodes()
-    const childrenNodes = nodes.filter(n => n.parentId === nodeId)
+    const childrenNodes = nodes.filter(n => n.parentId === nodeId && n.type !== CUSTOM_COLLECT_START_NODE)
     const newIdMapping = { ...idMapping }
     const childNodeTypeCount: ChildNodeTypeCount = {}
 

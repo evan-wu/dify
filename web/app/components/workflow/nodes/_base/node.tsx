@@ -16,6 +16,7 @@ import {
   RiLoader2Line,
 } from '@remixicon/react'
 import { useTranslation } from 'react-i18next'
+import { useStoreApi } from 'reactflow'
 import type { NodeProps } from '../../types'
 import {
   BlockEnum,
@@ -31,6 +32,7 @@ import {
 } from '../../utils'
 import { useNodeIterationInteractions } from '../iteration/use-interactions'
 import { useNodeLoopInteractions } from '../loop/use-interactions'
+import { useNodeCollectInteractions } from '../collect/use-interactions'
 import type { IterationNodeType } from '../iteration/types'
 import CopyID from '../tool/components/copy-id'
 import {
@@ -61,15 +63,24 @@ const BaseNode: FC<BaseNodeProps> = ({
 }) => {
   const { t } = useTranslation()
   const nodeRef = useRef<HTMLDivElement>(null)
+  const store = useStoreApi()
   const { nodesReadOnly } = useNodesReadOnly()
   const { handleNodeIterationChildSizeChange } = useNodeIterationInteractions()
   const { handleNodeLoopChildSizeChange } = useNodeLoopInteractions()
+  const { handleNodeCollectChildSizeChange } = useNodeCollectInteractions()
   const toolIcon = useToolIcon(data)
 
   useEffect(() => {
     if (nodeRef.current && data.selected && data.isInIteration) {
       const resizeObserver = new ResizeObserver(() => {
-        handleNodeIterationChildSizeChange(id)
+        const { getNodes } = store.getState()
+        const nodes = getNodes()
+        const parentNode = nodes.find(n => n.id === data.iteration_id)
+        if (parentNode?.data.type === BlockEnum.Collect) {
+          handleNodeCollectChildSizeChange(id)
+        } else {
+          handleNodeIterationChildSizeChange(id)
+        }
       })
 
       resizeObserver.observe(nodeRef.current)
@@ -78,7 +89,7 @@ const BaseNode: FC<BaseNodeProps> = ({
         resizeObserver.disconnect()
       }
     }
-  }, [data.isInIteration, data.selected, id, handleNodeIterationChildSizeChange])
+  }, [data.isInIteration, data.selected, id, data.iteration_id, store, handleNodeIterationChildSizeChange, handleNodeCollectChildSizeChange])
 
   useEffect(() => {
     if (nodeRef.current && data.selected && data.isInLoop) {
@@ -146,8 +157,8 @@ const BaseNode: FC<BaseNodeProps> = ({
       )}
       ref={nodeRef}
       style={{
-        width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) ? data.width : 'auto',
-        height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) ? data.height : 'auto',
+        width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) ? data.width : 'auto',
+        height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) ? data.height : 'auto',
       }}
     >
       {
@@ -163,8 +174,8 @@ const BaseNode: FC<BaseNodeProps> = ({
         className={cn(
           'group relative pb-1 shadow-xs',
           'rounded-[15px] border border-transparent',
-          (data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop) && 'w-[240px] bg-workflow-block-bg',
-          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) && 'flex h-full w-full flex-col border-workflow-block-border bg-workflow-block-bg-transparent',
+          (data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && data.type !== BlockEnum.Collect) && 'w-[240px] bg-workflow-block-bg',
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) && 'flex h-full w-full flex-col border-workflow-block-border bg-workflow-block-bg-transparent',
           !data._runningStatus && 'hover:shadow-lg',
           showRunningBorder && '!border-state-accent-solid',
           showSuccessBorder && '!border-state-success-solid',
@@ -191,6 +202,14 @@ const BaseNode: FC<BaseNodeProps> = ({
         }
         {
           data.type === BlockEnum.Loop && (
+            <NodeResizer
+              nodeId={id}
+              nodeData={data}
+            />
+          )
+        }
+        {
+          data.type === BlockEnum.Collect && (
             <NodeResizer
               nodeId={id}
               nodeData={data}
@@ -227,7 +246,7 @@ const BaseNode: FC<BaseNodeProps> = ({
         }
         <div className={cn(
           'flex items-center rounded-t-2xl px-3 pb-2 pt-3',
-          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) && 'bg-transparent',
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) && 'bg-transparent',
         )}>
           <BlockIcon
             className='mr-2 shrink-0'
@@ -291,12 +310,12 @@ const BaseNode: FC<BaseNodeProps> = ({
           }
         </div>
         {
-          data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && (
+          data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && data.type !== BlockEnum.Collect && (
             cloneElement(children, { id, data })
           )
         }
         {
-          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) && (
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) && (
             <div className='grow pb-1 pl-1 pr-1'>
               {cloneElement(children, { id, data })}
             </div>
@@ -319,7 +338,7 @@ const BaseNode: FC<BaseNodeProps> = ({
           )
         }
         {
-          data.desc && data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && (
+          data.desc && data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Collect && data.type !== BlockEnum.Loop && (
             <div className='system-xs-regular whitespace-pre-line break-words px-3 pb-2 pt-1 text-text-tertiary'>
               {data.desc}
             </div>

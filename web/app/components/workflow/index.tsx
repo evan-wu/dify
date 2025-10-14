@@ -56,6 +56,8 @@ import CustomIterationStartNode from './nodes/iteration-start'
 import { CUSTOM_ITERATION_START_NODE } from './nodes/iteration-start/constants'
 import CustomLoopStartNode from './nodes/loop-start'
 import { CUSTOM_LOOP_START_NODE } from './nodes/loop-start/constants'
+import CustomCollectStartNode from './nodes/collect-start'
+import { CUSTOM_COLLECT_START_NODE } from './nodes/collect-start/constants'
 import CustomSimpleNode from './simple-node'
 import { CUSTOM_SIMPLE_NODE } from './simple-node/constants'
 import CustomDataSourceEmptyNode from './nodes/data-source-empty'
@@ -103,6 +105,7 @@ const nodeTypes = {
   [CUSTOM_SIMPLE_NODE]: CustomSimpleNode,
   [CUSTOM_ITERATION_START_NODE]: CustomIterationStartNode,
   [CUSTOM_LOOP_START_NODE]: CustomLoopStartNode,
+  [CUSTOM_COLLECT_START_NODE]: CustomCollectStartNode,
   [CUSTOM_DATA_SOURCE_EMPTY_NODE]: CustomDataSourceEmptyNode,
 }
 const edgeTypes = {

@@ -269,6 +269,7 @@ const translation = {
     'loop': '循环',
     'loop-end': '退出循环',
     'collect': '采集',
+    'collect-start': '采集开始',
     'race': '竞赛',
     'knowledge-index': '知识库',
     'datasource': '数据源',

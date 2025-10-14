@@ -16,6 +16,7 @@ import {
 import { CUSTOM_ITERATION_START_NODE } from '../nodes/iteration-start/constants'
 import { CUSTOM_LOOP_START_NODE } from '../nodes/loop-start/constants'
 import type { CaseItem, IfElseNodeType } from '../nodes/if-else/types'
+import { CUSTOM_COLLECT_START_NODE } from '@/app/components/workflow/nodes/collect-start/constants'
 
 // Although the file name refers to Dagre, the implementation now relies on ELK's layered algorithm.
 // Keep the export signatures unchanged to minimise the blast radius while we migrate the layout stack.
@@ -442,8 +443,10 @@ const normaliseChildLayout = (
   const startNode = nodes.find(node =>
     node.type === CUSTOM_ITERATION_START_NODE
     || node.type === CUSTOM_LOOP_START_NODE
+    || node.type === CUSTOM_COLLECT_START_NODE
     || node.data?.type === BlockEnum.LoopStart
-    || node.data?.type === BlockEnum.IterationStart,
+    || node.data?.type === BlockEnum.IterationStart
+    || node.data?.type === BlockEnum.CollectStart,
   )
 
   if (startNode) {

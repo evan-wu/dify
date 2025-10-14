@@ -26,6 +26,7 @@ export const canRunBySingle = (nodeType: BlockEnum, isChildNode: boolean) => {
     || nodeType === BlockEnum.Tool
     || nodeType === BlockEnum.ParameterExtractor
     || nodeType === BlockEnum.Iteration
+    || nodeType === BlockEnum.Collect
     || nodeType === BlockEnum.Agent
     || nodeType === BlockEnum.DocExtractor
     || nodeType === BlockEnum.Loop
@@ -113,7 +114,7 @@ export const getValidTreeNodes = (startNode: Node, nodes: Node[], edges: Edge[])
       outgoers.forEach((outgoer) => {
         list.push(outgoer)
 
-        if (outgoer.data.type === BlockEnum.Iteration)
+        if (outgoer.data.type === BlockEnum.Iteration || outgoer.data.type === BlockEnum.Collect)
           list.push(...nodes.filter(node => node.parentId === outgoer.id))
         if (outgoer.data.type === BlockEnum.Loop)
           list.push(...nodes.filter(node => node.parentId === outgoer.id))
@@ -124,7 +125,7 @@ export const getValidTreeNodes = (startNode: Node, nodes: Node[], edges: Edge[])
     else {
       list.push(root)
 
-      if (root.data.type === BlockEnum.Iteration)
+      if (root.data.type === BlockEnum.Iteration || root.data.type === BlockEnum.Collect)
         list.push(...nodes.filter(node => node.parentId === root.id))
       if (root.data.type === BlockEnum.Loop)
         list.push(...nodes.filter(node => node.parentId === root.id))

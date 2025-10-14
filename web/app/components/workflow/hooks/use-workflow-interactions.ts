@@ -98,7 +98,7 @@ export const useWorkflowOrganize = () => {
     const nodes = getNodes()
 
     const loopAndIterationNodes = nodes.filter(
-      node => (node.data.type === BlockEnum.Loop || node.data.type === BlockEnum.Iteration)
+      node => (node.data.type === BlockEnum.Loop || node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect)
               && !node.parentId
               && node.type === CUSTOM_NODE,
     )
@@ -140,7 +140,7 @@ export const useWorkflowOrganize = () => {
 
     const nodesWithUpdatedSizes = produce(nodes, (draft) => {
       draft.forEach((node) => {
-        if ((node.data.type === BlockEnum.Loop || node.data.type === BlockEnum.Iteration)
+        if ((node.data.type === BlockEnum.Loop || node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect)
             && containerSizeChanges[node.id]) {
           node.width = containerSizeChanges[node.id].width
           node.height = containerSizeChanges[node.id].height
@@ -149,7 +149,7 @@ export const useWorkflowOrganize = () => {
             node.data.width = containerSizeChanges[node.id].width
             node.data.height = containerSizeChanges[node.id].height
           }
-          else if (node.data.type === BlockEnum.Iteration) {
+          else if (node.data.type === BlockEnum.Iteration || node.data.type === BlockEnum.Collect) {
             node.data.width = containerSizeChanges[node.id].width
             node.data.height = containerSizeChanges[node.id].height
           }

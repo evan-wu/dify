@@ -40,6 +40,7 @@ import {
 } from '@/service/tools'
 import { CUSTOM_ITERATION_START_NODE } from '@/app/components/workflow/nodes/iteration-start/constants'
 import { CUSTOM_LOOP_START_NODE } from '@/app/components/workflow/nodes/loop-start/constants'
+import { CUSTOM_COLLECT_START_NODE } from '@/app/components/workflow/nodes/collect-start/constants'
 import { basePath } from '@/utils/var'
 import { useNodesMetaData } from '.'
 
@@ -74,7 +75,7 @@ export const useWorkflow = () => {
     let startNodes = nodes.filter(node => nodesMap?.[node.data.type as BlockEnum]?.metaData.isStart) || []
 
     if (currentNode?.parentId) {
-      const startNode = nodes.find(node => node.parentId === currentNode.parentId && (node.type === CUSTOM_ITERATION_START_NODE || node.type === CUSTOM_LOOP_START_NODE))
+      const startNode = nodes.find(node => node.parentId === currentNode.parentId && (node.type === CUSTOM_ITERATION_START_NODE || node.type === CUSTOM_LOOP_START_NODE || node.type === CUSTOM_COLLECT_START_NODE))
       if (startNode)
         startNodes = [startNode]
     }

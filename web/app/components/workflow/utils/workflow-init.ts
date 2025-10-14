@@ -23,15 +23,18 @@ import {
 } from '../constants'
 import { CUSTOM_ITERATION_START_NODE } from '../nodes/iteration-start/constants'
 import { CUSTOM_LOOP_START_NODE } from '../nodes/loop-start/constants'
+import { CUSTOM_COLLECT_START_NODE } from '../nodes/collect-start/constants'
 import type { QuestionClassifierNodeType } from '../nodes/question-classifier/types'
 import type { IfElseNodeType } from '../nodes/if-else/types'
 import { branchNameCorrect } from '../nodes/if-else/utils'
 import type { IterationNodeType } from '../nodes/iteration/types'
 import type { LoopNodeType } from '../nodes/loop/types'
+import type { CollectNodeType } from '../nodes/collect/types'
 import type { ToolNodeType } from '../nodes/tool/types'
 import {
   getIterationStartNode,
   getLoopStartNode,
+  getCollectStartNode,
 } from '.'
 import { correctModelProvider } from '@/utils'
 
@@ -91,8 +94,9 @@ const getCycleEdges = (nodes: Node[], edges: Edge[]) => {
 export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
   const hasIterationNode = nodes.some(node => node.data.type === BlockEnum.Iteration)
   const hasLoopNode = nodes.some(node => node.data.type === BlockEnum.Loop)
+  const hasCollectNode = nodes.some(node => node.data.type === BlockEnum.Collect)
 
-  if (!hasIterationNode && !hasLoopNode) {
+  if (!hasIterationNode && !hasLoopNode && !hasCollectNode) {
     return {
       nodes,
       edges,
@@ -108,13 +112,16 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
   const iterationNodesWithoutStartNode = []
   const loopNodesWithStartNode = []
   const loopNodesWithoutStartNode = []
+  const collectNodesWithStartNode = []
+  const collectNodesWithoutStartNode = []
 
   for (let i = 0; i < nodes.length; i++) {
-    const currentNode = nodes[i] as Node<IterationNodeType | LoopNodeType>
+    const currentNode = nodes[i] as Node<IterationNodeType | LoopNodeType | CollectNodeType>
 
     if (currentNode.data.type === BlockEnum.Iteration) {
       if (currentNode.data.start_node_id) {
-        if (nodesMap[currentNode.data.start_node_id]?.type !== CUSTOM_ITERATION_START_NODE)
+        const startNode = nodesMap[currentNode.data.start_node_id]
+        if (startNode && startNode.type !== CUSTOM_ITERATION_START_NODE)
           iterationNodesWithStartNode.push(currentNode)
       }
       else {
@@ -124,11 +131,23 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
 
     if (currentNode.data.type === BlockEnum.Loop) {
       if (currentNode.data.start_node_id) {
-        if (nodesMap[currentNode.data.start_node_id]?.type !== CUSTOM_LOOP_START_NODE)
+        const startNode = nodesMap[currentNode.data.start_node_id]
+        if (startNode && startNode.type !== CUSTOM_LOOP_START_NODE)
           loopNodesWithStartNode.push(currentNode)
       }
       else {
         loopNodesWithoutStartNode.push(currentNode)
+      }
+    }
+
+    if (currentNode.data.type === BlockEnum.Collect) {
+      if (currentNode.data.start_node_id) {
+        const startNode = nodesMap[currentNode.data.start_node_id]
+        if (startNode && startNode.type !== CUSTOM_COLLECT_START_NODE)
+          collectNodesWithStartNode.push(currentNode)
+      }
+      else {
+        collectNodesWithoutStartNode.push(currentNode)
       }
     }
   }
@@ -149,9 +168,19 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
     return newNode
   })
 
-  const newEdges = [...iterationNodesWithStartNode, ...loopNodesWithStartNode].map((nodeItem) => {
+  const newCollectStartNodesMap = {} as Record<string, Node>
+  const newCollectStartNodes = [...collectNodesWithStartNode, ...collectNodesWithoutStartNode].map((collectNode, index) => {
+    const newNode = getCollectStartNode(collectNode.id)
+    newNode.id = newNode.id + index
+    newCollectStartNodesMap[collectNode.id] = newNode
+    return newNode
+  })
+
+  const newEdges = [...iterationNodesWithStartNode, ...loopNodesWithStartNode, ...collectNodesWithStartNode].map((nodeItem) => {
     const isIteration = nodeItem.data.type === BlockEnum.Iteration
-    const newNode = (isIteration ? newIterationStartNodesMap : newLoopStartNodesMap)[nodeItem.id]
+    const isLoop = nodeItem.data.type === BlockEnum.Loop
+    const isCollect = nodeItem.data.type === BlockEnum.Collect
+    const newNode = isIteration ? newIterationStartNodesMap[nodeItem.id] : (isLoop ? newLoopStartNodesMap[nodeItem.id] : newCollectStartNodesMap[nodeItem.id])
     const startNode = nodesMap[nodeItem.data.start_node_id]
     const source = newNode.id
     const sourceHandle = 'source'
@@ -159,7 +188,7 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
     const targetHandle = 'target'
 
     const parentNode = nodes.find(node => node.id === startNode.parentId) || null
-    const isInIteration = !!parentNode && parentNode.data.type === BlockEnum.Iteration
+    const isInIteration = !!parentNode && (parentNode.data.type === BlockEnum.Iteration || parentNode.data.type === BlockEnum.Collect)
     const isInLoop = !!parentNode && parentNode.data.type === BlockEnum.Loop
 
     return {
@@ -178,7 +207,7 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
         loop_id: isInLoop ? startNode.parentId : undefined,
         _connectedNodeIsSelected: true,
       },
-      zIndex: isIteration ? ITERATION_CHILDREN_Z_INDEX : LOOP_CHILDREN_Z_INDEX,
+      zIndex: isIteration || isCollect ? ITERATION_CHILDREN_Z_INDEX : LOOP_CHILDREN_Z_INDEX,
     }
   })
   nodes.forEach((node) => {
@@ -187,10 +216,13 @@ export const preprocessNodesAndEdges = (nodes: Node[], edges: Edge[]) => {
 
     if (node.data.type === BlockEnum.Loop && newLoopStartNodesMap[node.id])
       (node.data as LoopNodeType).start_node_id = newLoopStartNodesMap[node.id].id
+
+    if (node.data.type === BlockEnum.Collect && newCollectStartNodesMap[node.id])
+      (node.data as CollectNodeType).start_node_id = newCollectStartNodesMap[node.id].id
   })
 
   return {
-    nodes: [...nodes, ...newIterationStartNodes, ...newLoopStartNodes],
+    nodes: [...nodes, ...newIterationStartNodes, ...newLoopStartNodes, ...newCollectStartNodes],
     edges: [...edges, ...newEdges],
   }
 }
@@ -263,6 +295,11 @@ export const initialNodes = (originNodes: Node[], originEdges: Edge[]) => {
       const loopNodeData = node.data as LoopNodeType
       loopNodeData._children = iterationOrLoopNodeMap[node.id] || []
       loopNodeData.error_handle_mode = loopNodeData.error_handle_mode || ErrorHandleMode.Terminated
+    }
+
+    if (node.data.type === BlockEnum.Collect) {
+      const collectNodeData = node.data as CollectNodeType
+      collectNodeData._children = iterationOrLoopNodeMap[node.id] || []
     }
 
     // legacy provider handle

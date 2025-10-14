@@ -40,8 +40,8 @@ const BaseCard = ({
         'flex rounded-2xl border-[2px] border-transparent',
       )}
       style={{
-        width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) ? data.width : 'auto',
-        height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) ? data.height : 'auto',
+        width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) ? data.width : 'auto',
+        height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) ? data.height : 'auto',
       }}
     >
       <div
@@ -51,8 +51,8 @@ const BaseCard = ({
           'bg-workflow-block-bg hover:shadow-lg',
         )}
         style={{
-          width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) ? data.width : '240px',
-          height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) ? data.height : 'auto',
+          width: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) ? data.width : '240px',
+          height: (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) ? data.height : 'auto',
         }}
       >
         <div className={cn(
@@ -105,12 +105,12 @@ const BaseCard = ({
           </div>
         </div>
         {
-          data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && children && (
+          data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && data.type !== BlockEnum.Collect && children && (
             cloneElement(children, { id, data })
           )
         }
         {
-          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop) && children && (
+          (data.type === BlockEnum.Iteration || data.type === BlockEnum.Loop || data.type === BlockEnum.Collect) && children && (
             <div className='h-[calc(100%-42px)] w-full grow pb-1 pl-1 pr-1'>
               {cloneElement(children, { id, data })}
             </div>
@@ -125,7 +125,7 @@ const BaseCard = ({
           )
         }
         {
-          data.desc && data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && (
+          data.desc && data.type !== BlockEnum.Iteration && data.type !== BlockEnum.Loop && data.type !== BlockEnum.Collect && (
             <div className='system-xs-regular whitespace-pre-line break-words px-3 pb-2 pt-1 text-text-tertiary'>
               {data.desc}
             </div>

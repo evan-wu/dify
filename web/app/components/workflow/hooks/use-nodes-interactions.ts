@@ -46,6 +46,7 @@ import { CUSTOM_LOOP_START_NODE } from '../nodes/loop-start/constants'
 import type { VariableAssignerNodeType } from '../nodes/variable-assigner/types'
 import { useNodeIterationInteractions } from '../nodes/iteration/use-interactions'
 import { useNodeLoopInteractions } from '../nodes/loop/use-interactions'
+import { useNodeCollectInteractions } from '../nodes/collect/use-interactions'
 import { useWorkflowHistoryStore } from '../workflow-history-store'
 import { useNodesSyncDraft } from './use-nodes-sync-draft'
 import { useHelpline } from './use-helpline'
@@ -78,6 +79,8 @@ export const useNodesInteractions = () => {
     = useNodeIterationInteractions()
   const { handleNodeLoopChildDrag, handleNodeLoopChildrenCopy }
     = useNodeLoopInteractions()
+  const { handleNodeCollectChildDrag, handleNodeCollectChildrenCopy }
+    = useNodeCollectInteractions()
   const dragNodeStartPosition = useRef({ x: 0, y: 0 } as {
     x: number;
     y: number;
@@ -128,6 +131,8 @@ export const useNodesInteractions = () => {
       const { restrictPosition } = handleNodeIterationChildDrag(node)
       const { restrictPosition: restrictLoopPosition }
         = handleNodeLoopChildDrag(node)
+      const { restrictPosition: restrictCollectPosition }
+        = handleNodeCollectChildDrag(node)
 
       const { showHorizontalHelpLineNodes, showVerticalHelpLineNodes }
         = handleSetHelpline(node)
@@ -144,6 +149,8 @@ export const useNodesInteractions = () => {
           currentNode.position.x = restrictPosition.x
         else if (restrictLoopPosition.x !== undefined)
           currentNode.position.x = restrictLoopPosition.x
+        else if (restrictCollectPosition.x !== undefined)
+          currentNode.position.x = restrictCollectPosition.x
         else currentNode.position.x = node.position.x
 
         if (showHorizontalHelpLineNodesLength > 0)
@@ -152,6 +159,8 @@ export const useNodesInteractions = () => {
           currentNode.position.y = restrictPosition.y
         else if (restrictLoopPosition.y !== undefined)
           currentNode.position.y = restrictLoopPosition.y
+        else if (restrictCollectPosition.y !== undefined)
+          currentNode.position.y = restrictCollectPosition.y
         else currentNode.position.y = node.position.y
       })
       setNodes(newNodes)
@@ -161,6 +170,7 @@ export const useNodesInteractions = () => {
       store,
       handleNodeIterationChildDrag,
       handleNodeLoopChildDrag,
+      handleNodeCollectChildDrag,
       handleSetHelpline,
     ],
   )
@@ -393,7 +403,7 @@ export const useNodesInteractions = () => {
 
       const parendNode = nodes.find(node => node.id === targetNode?.parentId)
       const isInIteration
-        = parendNode && parendNode.data.type === BlockEnum.Iteration
+        = parendNode && (parendNode.data.type === BlockEnum.Iteration || parendNode.data.type === BlockEnum.Collect)
       const isInLoop = !!parendNode && parendNode.data.type === BlockEnum.Loop
 
       const newEdge = {
@@ -577,7 +587,7 @@ export const useNodesInteractions = () => {
         return
 
       deleteNodeInspectorVars(nodeId)
-      if (currentNode.data.type === BlockEnum.Iteration) {
+      if (currentNode.data.type === BlockEnum.Iteration || currentNode.data.type === BlockEnum.Collect) {
         const iterationChildren = nodes.filter(
           node => node.parentId === currentNode.id,
         )
@@ -747,7 +757,7 @@ export const useNodesInteractions = () => {
         node => node.data.type === nodeType,
       )
       const { defaultValue } = nodesMetaDataMap![nodeType]
-      const { newNode, newIterationStartNode, newLoopStartNode }
+      const { newNode, newIterationStartNode, newLoopStartNode, newCollectStartNode }
         = generateNewNode({
           type: getNodeCustomTypeByNodeDataType(nodeType),
           data: {
@@ -794,7 +804,7 @@ export const useNodesInteractions = () => {
         const parentNode
           = nodes.find(node => node.id === prevNode.parentId) || null
         const isInIteration
-          = !!parentNode && parentNode.data.type === BlockEnum.Iteration
+          = !!parentNode && (parentNode.data.type === BlockEnum.Iteration || parentNode.data.type === BlockEnum.Collect)
         const isInLoop
           = !!parentNode && parentNode.data.type === BlockEnum.Loop
 
@@ -890,12 +900,24 @@ export const useNodesInteractions = () => {
                 nodeType: newNode.data.type,
               })
             }
+
+            if (
+              node.data.type === BlockEnum.Collect
+              && prevNode.parentId === node.id
+            ) {
+              node.data._children?.push({
+                nodeId: newNode.id,
+                nodeType: newNode.data.type,
+              })
+            }
           })
           draft.push(newNode)
 
           if (newIterationStartNode) draft.push(newIterationStartNode)
 
           if (newLoopStartNode) draft.push(newLoopStartNode)
+
+          if (newCollectStartNode) draft.push(newCollectStartNode)
         })
 
         if (
@@ -947,7 +969,7 @@ export const useNodesInteractions = () => {
         const parentNode
           = nodes.find(node => node.id === nextNode.parentId) || null
         const isInIteration
-          = !!parentNode && parentNode.data.type === BlockEnum.Iteration
+          = !!parentNode && (parentNode.data.type === BlockEnum.Iteration || parentNode.data.type === BlockEnum.Collect)
         const isInLoop
           = !!parentNode && parentNode.data.type === BlockEnum.Loop
 
@@ -1057,10 +1079,29 @@ export const useNodesInteractions = () => {
               node.data.start_node_id = newNode.id
               node.data.startNodeType = newNode.data.type
             }
+
+            if (
+              node.data.type === BlockEnum.Collect
+              && nextNode.parentId === node.id
+            ) {
+              node.data._children?.push({
+                nodeId: newNode.id,
+                nodeType: newNode.data.type,
+              })
+            }
+
+            if (
+              node.data.type === BlockEnum.Collect
+              && node.data.start_node_id === nextNodeId
+            ) {
+              node.data.start_node_id = newNode.id
+              node.data.startNodeType = newNode.data.type
+            }
           })
           draft.push(newNode)
           if (newIterationStartNode) draft.push(newIterationStartNode)
           if (newLoopStartNode) draft.push(newLoopStartNode)
+          if (newCollectStartNode) draft.push(newCollectStartNode)
         })
         if (newEdge) {
           const newEdges = produce(edges, (draft) => {
@@ -1097,7 +1138,7 @@ export const useNodesInteractions = () => {
         const parentNode
           = nodes.find(node => node.id === prevNode.parentId) || null
         const isInIteration
-          = !!parentNode && parentNode.data.type === BlockEnum.Iteration
+          = !!parentNode && (parentNode.data.type === BlockEnum.Iteration || parentNode.data.type === BlockEnum.Collect)
         const isInLoop
           = !!parentNode && parentNode.data.type === BlockEnum.Loop
 
@@ -1150,7 +1191,7 @@ export const useNodesInteractions = () => {
           = nodes.find(node => node.id === nextNode.parentId) || null
         const isNextNodeInIteration
           = !!nextNodeParentNode
-          && nextNodeParentNode.data.type === BlockEnum.Iteration
+          && (nextNodeParentNode.data.type === BlockEnum.Iteration || nextNodeParentNode.data.type === BlockEnum.Collect)
         const isNextNodeInLoop
           = !!nextNodeParentNode
           && nextNodeParentNode.data.type === BlockEnum.Loop
@@ -1230,10 +1271,20 @@ export const useNodesInteractions = () => {
                 nodeType: newNode.data.type,
               })
             }
+            if (
+              node.data.type === BlockEnum.Collect
+              && prevNode.parentId === node.id
+            ) {
+              node.data._children?.push({
+                nodeId: newNode.id,
+                nodeType: newNode.data.type,
+              })
+            }
           })
           draft.push(newNode)
           if (newIterationStartNode) draft.push(newIterationStartNode)
           if (newLoopStartNode) draft.push(newLoopStartNode)
+          if (newCollectStartNode) draft.push(newCollectStartNode)
         })
         setNodes(newNodes)
         if (
@@ -1553,7 +1604,7 @@ export const useNodesInteractions = () => {
             })
           })
           newChildren.push(newLoopStartNode!)
-        }
+        }  // TODO: add Collect Node paste
         else {
           // single node paste
           const selectedNode = nodes.find(node => node.selected)
@@ -1711,7 +1762,7 @@ export const useNodesInteractions = () => {
       if (rightNode! && bottomNode!) {
         const parentNode = nodes.find(n => n.id === rightNode.parentId)
         const paddingMap
-          = parentNode?.data.type === BlockEnum.Iteration
+          = (parentNode?.data.type === BlockEnum.Iteration || parentNode?.data.type === BlockEnum.Collect)
             ? ITERATION_PADDING
             : LOOP_PADDING
 

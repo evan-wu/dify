@@ -269,6 +269,7 @@ const translation = {
     'loop': 'Loop',
     'loop-end': 'Exit Loop',
     'collect': 'Collect',
+    'collect-start': 'Collect Start',
     'race': 'Race',
     'knowledge-index': 'Knowledge Base',
     'datasource': 'Data Source',

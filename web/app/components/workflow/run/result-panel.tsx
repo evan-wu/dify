@@ -71,6 +71,7 @@ const ResultPanel: FC<ResultPanelProps> = ({
   handleShowAgentOrToolLog,
 }) => {
   const { t } = useTranslation()
+  // TODO: add Collect node
   const isIterationNode = nodeInfo?.node_type === BlockEnum.Iteration && !!nodeInfo?.details?.length
   const isLoopNode = nodeInfo?.node_type === BlockEnum.Loop && !!nodeInfo?.details?.length
   const isRetryNode = hasRetryNode(nodeInfo?.node_type) && !!nodeInfo?.retryDetail?.length
