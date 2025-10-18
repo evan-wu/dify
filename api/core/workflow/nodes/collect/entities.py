@@ -16,3 +16,11 @@ class CollectNodeData(BaseNodeData):
     output_selector: list[str]  # output selector
     output: Optional[Any] = None
     OUTPUT_NAME: str = 'output'
+
+
+class CollectStartNodeData(BaseNodeData):
+    """
+    Collect Start Node Data.
+    """
+
+    pass

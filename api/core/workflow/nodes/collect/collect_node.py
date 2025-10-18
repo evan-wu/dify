@@ -126,7 +126,7 @@ class CollectNode(Node):
 
             if (
                 isinstance(event, GraphNodeEventBase)
-                and event.node_type == NodeType.ITERATION_START
+                and event.node_type == NodeType.COLLECT_START
                 and not isinstance(event, StreamChunkEvent)
             ):
                 continue

@@ -55,6 +55,7 @@ class NodeType(StrEnum):
     ITERATION = "iteration"
     ITERATION_START = "iteration-start"  # Fake start node for iteration.
     COLLECT = "collect"
+    COLLECT_START = "collect-start"
     PARAMETER_EXTRACTOR = "parameter-extractor"
     VARIABLE_ASSIGNER = "assigner"
     DOCUMENT_EXTRACTOR = "document-extractor"
@@ -71,6 +72,7 @@ class NodeExecutionType(StrEnum):
     BRANCH = "branch"  # Nodes that can choose different branches (if-else, question-classifier)
     CONTAINER = "container"  # Container nodes that manage subgraphs (iteration, loop, graph)
     ROOT = "root"  # Nodes that can serve as execution entry points
+    RACE = "race"  # Race nodes that can start when any dependency completes
 
 
 class ErrorStrategy(StrEnum):

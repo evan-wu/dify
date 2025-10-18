@@ -6,6 +6,7 @@ from core.workflow.nodes.answer.answer_node import AnswerNode
 from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.code import CodeNode
 from core.workflow.nodes.collect.collect_node import CollectNode
+from core.workflow.nodes.collect.collect_start_node import CollectStartNode
 from core.workflow.nodes.datasource.datasource_node import DatasourceNode
 from core.workflow.nodes.document_extractor import DocumentExtractorNode
 from core.workflow.nodes.end.end_node import EndNode
@@ -98,6 +99,10 @@ NODE_TYPE_CLASSES_MAPPING: Mapping[NodeType, Mapping[str, type[Node]]] = {
     NodeType.COLLECT: {
         LATEST_VERSION: CollectNode,
         "1": CollectNode,
+    },
+    NodeType.COLLECT_START: {
+        LATEST_VERSION: CollectStartNode,
+        "1": CollectStartNode,
     },
     NodeType.ITERATION_START: {
         LATEST_VERSION: IterationStartNode,
