@@ -84,6 +84,14 @@ class GraphStateManager:
             if not incoming_edges:
                 return True
 
+            # Get the node to check its execution type
+            node = self._graph.nodes[node_id]
+            
+            # Special handling for RACE nodes - ready when ANY dependency completes
+            if hasattr(node, 'execution_type') and node.execution_type.value == "race":
+                return any(edge.state == NodeState.TAKEN for edge in incoming_edges)
+
+            # Original logic for other node types
             # If any edge is UNKNOWN, node is not ready
             if any(edge.state == NodeState.UNKNOWN for edge in incoming_edges):
                 return False
