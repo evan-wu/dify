@@ -455,6 +455,8 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
                 "message_id": message.id,
                 "context": context,
                 "variable_loader": variable_loader,
+                "workflow_execution_repository": workflow_execution_repository,
+                "workflow_node_execution_repository": workflow_node_execution_repository,
             },
         )
 
@@ -474,8 +476,6 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             conversation=conversation,
             message=message,
             user=user,
-            workflow_execution_repository=workflow_execution_repository,
-            workflow_node_execution_repository=workflow_node_execution_repository,
             stream=stream,
             draft_var_saver_factory=self._get_draft_var_saver_factory(invoke_from, account=user),
         )
@@ -491,6 +491,8 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         message_id: str,
         context: contextvars.Context,
         variable_loader: VariableLoader,
+        workflow_execution_repository: WorkflowExecutionRepository,
+        workflow_node_execution_repository: WorkflowNodeExecutionRepository,
     ):
         """
         Generate worker in a new thread.
@@ -546,6 +548,8 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
                 workflow=workflow,
                 system_user_id=system_user_id,
                 app=app,
+                workflow_execution_repository=workflow_execution_repository,
+                workflow_node_execution_repository=workflow_node_execution_repository,
             )
 
             try:
@@ -578,8 +582,6 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         conversation: Conversation,
         message: Message,
         user: Union[Account, EndUser],
-        workflow_execution_repository: WorkflowExecutionRepository,
-        workflow_node_execution_repository: WorkflowNodeExecutionRepository,
         draft_var_saver_factory: DraftVariableSaverFactory,
         stream: bool = False,
     ) -> Union[ChatbotAppBlockingResponse, Generator[ChatbotAppStreamResponse, None, None]]:
@@ -592,7 +594,6 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
         :param message: message
         :param user: account or end user
         :param stream: is stream
-        :param workflow_node_execution_repository: optional repository for workflow node execution
         :return:
         """
         # init generate task pipeline
@@ -604,8 +605,6 @@ class AdvancedChatAppGenerator(MessageBasedAppGenerator):
             message=message,
             user=user,
             dialogue_count=self._dialogue_count,
-            workflow_execution_repository=workflow_execution_repository,
-            workflow_node_execution_repository=workflow_node_execution_repository,
             stream=stream,
             draft_var_saver_factory=draft_var_saver_factory,
         )

@@ -1,7 +1,7 @@
-from enum import Enum, StrEnum
+from enum import StrEnum
 
 
-class NodeState(Enum):
+class NodeState(StrEnum):
     """State of a node or edge during workflow execution."""
 
     UNKNOWN = "unknown"
@@ -62,6 +62,7 @@ class NodeType(StrEnum):
     LIST_OPERATOR = "list-operator"
     AGENT = "agent"
     RACE = "race"  # New node type for racing parallel branches
+    HUMAN_INPUT = "human-input"
 
 
 class NodeExecutionType(StrEnum):
@@ -101,6 +102,7 @@ class WorkflowExecutionStatus(StrEnum):
     FAILED = "failed"
     STOPPED = "stopped"
     PARTIAL_SUCCEEDED = "partial-succeeded"
+    PAUSED = "paused"
 
 
 class WorkflowNodeExecutionMetadataKey(StrEnum):

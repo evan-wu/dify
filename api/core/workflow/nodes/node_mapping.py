@@ -11,6 +11,7 @@ from core.workflow.nodes.datasource.datasource_node import DatasourceNode
 from core.workflow.nodes.document_extractor import DocumentExtractorNode
 from core.workflow.nodes.end.end_node import EndNode
 from core.workflow.nodes.http_request import HttpRequestNode
+from core.workflow.nodes.human_input import HumanInputNode
 from core.workflow.nodes.if_else import IfElseNode
 from core.workflow.nodes.iteration import IterationNode, IterationStartNode
 from core.workflow.nodes.knowledge_index import KnowledgeIndexNode
@@ -148,6 +149,10 @@ NODE_TYPE_CLASSES_MAPPING: Mapping[NodeType, Mapping[str, type[Node]]] = {
     NodeType.RACE: {
         LATEST_VERSION: RaceNode,
         "1": RaceNode,
+    },
+    NodeType.HUMAN_INPUT: {
+        LATEST_VERSION: HumanInputNode,
+        "1": HumanInputNode,
     },
     NodeType.DATASOURCE: {
         LATEST_VERSION: DatasourceNode,
