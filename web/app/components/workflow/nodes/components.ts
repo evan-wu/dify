@@ -30,6 +30,8 @@ import ParameterExtractorNode from './parameter-extractor/node'
 import ParameterExtractorPanel from './parameter-extractor/panel'
 import IterationNode from './iteration/node'
 import IterationPanel from './iteration/panel'
+import CollectNode from './collect/node'
+import CollectPanel from './collect/panel'
 import LoopNode from './loop/node'
 import LoopPanel from './loop/panel'
 import DocExtractorNode from './document-extractor/node'
@@ -38,6 +40,8 @@ import ListFilterNode from './list-operator/node'
 import ListFilterPanel from './list-operator/panel'
 import AgentNode from './agent/node'
 import AgentPanel from './agent/panel'
+import RaceNode from './race/node'
+import RacePanel from './race/panel'
 import DataSourceNode from './data-source/node'
 import DataSourcePanel from './data-source/panel'
 import KnowledgeBaseNode from './knowledge-base/node'
@@ -60,10 +64,12 @@ export const NodeComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.VariableAggregator]: VariableAssignerNode,
   [BlockEnum.ParameterExtractor]: ParameterExtractorNode,
   [BlockEnum.Iteration]: IterationNode,
+  [BlockEnum.Collect]: CollectNode,
   [BlockEnum.Loop]: LoopNode,
   [BlockEnum.DocExtractor]: DocExtractorNode,
   [BlockEnum.ListFilter]: ListFilterNode,
   [BlockEnum.Agent]: AgentNode,
+  [BlockEnum.Race]: RaceNode,
   [BlockEnum.DataSource]: DataSourceNode,
   [BlockEnum.KnowledgeBase]: KnowledgeBaseNode,
 }
@@ -85,10 +91,12 @@ export const PanelComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.Assigner]: AssignerPanel,
   [BlockEnum.ParameterExtractor]: ParameterExtractorPanel,
   [BlockEnum.Iteration]: IterationPanel,
+  [BlockEnum.Collect]: CollectPanel,
   [BlockEnum.Loop]: LoopPanel,
   [BlockEnum.DocExtractor]: DocExtractorPanel,
   [BlockEnum.ListFilter]: ListFilterPanel,
   [BlockEnum.Agent]: AgentPanel,
+  [BlockEnum.Race]: RacePanel,
   [BlockEnum.DataSource]: DataSourcePanel,
   [BlockEnum.KnowledgeBase]: KnowledgeBasePanel,
 }
