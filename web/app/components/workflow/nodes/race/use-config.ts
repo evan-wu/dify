@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import produce from 'immer'
+import { produce } from 'immer'
 import type { RaceNodeType } from './types'
 import { RaceStrategy, WinCondition } from './types'
 import type { ValueSelector, Var } from '@/app/components/workflow/types'

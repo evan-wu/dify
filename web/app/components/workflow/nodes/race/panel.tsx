@@ -1,10 +1,10 @@
 import type { FC } from 'react'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import produce from 'immer'
+import { produce } from 'immer'
 import type { RaceNodeType } from './types'
 import { RaceStrategy, WinCondition } from './types'
-import type { NodePanelProps } from '@/app/components/workflow/types'
+import type { NodePanelProps, ValueSelector } from '@/app/components/workflow/types'
 import { BlockEnum } from '@/app/components/workflow/types'
 import useConfig from './use-config'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
@@ -197,7 +197,7 @@ const Panel: FC<NodePanelProps<RaceNodeType>> = ({
                     nodeId={id}
                     isShowNodeName
                     value={variable}
-                    onChange={(value) => handleVariableChange(index, value)}
+                    onChange={(value) => handleVariableChange(index, value as ValueSelector)}
                     filterVar={filterVar}
                   />
                 </div>
