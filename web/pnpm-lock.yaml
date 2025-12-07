@@ -60,6 +60,9 @@ importers:
 
   .:
     dependencies:
+      '@babel/runtime':
+        specifier: ^7.28.4
+        version: 7.28.4
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
